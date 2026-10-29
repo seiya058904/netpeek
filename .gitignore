@@ -1,0 +1,8 @@
+dist/
+artifacts/
+.codex/
+.impeccable/
+*.user
+*.pdb
+*.log
+tests/bin/
