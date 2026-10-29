@@ -1,0 +1,30 @@
+{
+  "SchemaVersion": 1,
+  "ExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "GeneratedAtUtc": "2026-10-29T13:07:25.8983938Z",
+  "Passed": true,
+  "Method": "Final EXE embedded XAML and real MainController with its ordinary real NetworkCollector; private RenderLatest invoked because the window is never shown. Actual binding, filtering, expansion, Pause and Info routed events are used. Rendering reuses LayoutTests Arrange and Render helpers. Four images are WPF content-root exports at 96 dpi, not desktop screenshots or physical DPI evidence. No synthetic application or endpoint rows; details use the controlled loopback fixture. The helper asserted zero OS window handle and IsVisible=false after every image.",
+  "Limitations": "Not a Program.Main GUI lifecycle, focus, clipboard or physical DPI test. The reused Render helper log labels images as fixture renders generically, but this driver supplies actual collector data. The minimum-window image scrolls the real application list to its endpoint grid, with warning and info both open.",
+  "DriverSource": "artifacts/v0.1.1/offscreen-final/Capture.cs",
+  "DriverSourceSha256": "61E7F601CDC7BDBFBB7D6FA764459D753B6299E932181603B649A02EDB6ED159",
+  "DriverExecutableSha256": "F17C5369E3CA493E3050D867E7D53CFDBE1A15AB60DA7B00FA002E1F821AA377",
+  "RawLogSha256": "30264ABA4AFBBD53A3151831B08B7F75956CA38E0D74FFFE8B4849B9D06C13C0",
+  "Images": [
+    {
+      "Path": "docs/screenshots/0.1.1/overview.png",
+      "Sha256": "C45F07F8908026E14877F97C4E28BED2C2CF85735BFC68C299C2700DDE5931CB"
+    },
+    {
+      "Path": "docs/screenshots/0.1.1/connections.png",
+      "Sha256": "9CC7C779CBDC2CA62D0C1D704BCAFF539ABF4DC94D45149BE92D8F5BCF184D4B"
+    },
+    {
+      "Path": "docs/screenshots/0.1.1/empty-search.png",
+      "Sha256": "25E940A60A9424D615C54B2AFA11AAD6679A1EF3C34C754CD9D33B6A18A87D69"
+    },
+    {
+      "Path": "docs/screenshots/0.1.1/minimum-window.png",
+      "Sha256": "B12A9C8EF7F4C25727A6B15113A636A2417B2F2074C0A69A581BF0BED6DAF753"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+﻿{
+    "SchemaVersion":  1,
+    "GeneratedAtUtc":  "2026-10-29T12:47:59.6877974Z",
+    "Passed":  true,
+    "Method":  "Same offline synthetic fixture against independently loaded real baseline and candidate EXEs. One verified process with 512 unchanged endpoints, second snapshot two seconds later; counts include all INotifyPropertyChanged and collection events after the first sample. Unknown identity probe advances raw epoch while retaining the same PID and endpoint tuple. This is not live collector or CPU evidence.",
+    "Baseline":  {
+                     "ExecutableSha256":  "C0207E41E50FE1D36CD6296F51364020DC3C467C96C1F2EF7DE80E29A582181B",
+                     "Result":  {
+                                    "EndpointFixtureCount":  512,
+                                    "ApplicationNotifications":  7,
+                                    "ProcessNotifications":  1025,
+                                    "EndpointNotifications":  4608,
+                                    "CollectionNotifications":  0,
+                                    "LastSeenAccurate":  true,
+                                    "UnknownApplicationReused":  false,
+                                    "UnknownProcessReused":  false,
+                                    "UnknownEndpointReused":  false,
+                                    "UnknownExpansionRetained":  false,
+                                    "UnknownRawEpochStillDistinct":  true,
+                                    "UnknownRemainsUnverified":  true
+                                }
+                 },
+    "Candidate":  {
+                      "ExecutableSha256":  "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+                      "Result":  {
+                                     "EndpointFixtureCount":  512,
+                                     "ApplicationNotifications":  0,
+                                     "ProcessNotifications":  0,
+                                     "EndpointNotifications":  0,
+                                     "CollectionNotifications":  0,
+                                     "LastSeenAccurate":  true,
+                                     "UnknownApplicationReused":  true,
+                                     "UnknownProcessReused":  true,
+                                     "UnknownEndpointReused":  true,
+                                     "UnknownExpansionRetained":  true,
+                                     "UnknownRawEpochStillDistinct":  true,
+                                     "UnknownRemainsUnverified":  true
+                                 }
+                  }
+}

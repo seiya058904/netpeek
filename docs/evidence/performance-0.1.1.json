@@ -1,0 +1,73 @@
+{
+  "SchemaVersion": 3,
+  "Status": "Incomplete final-candidate measurement; no complete final-version performance comparison.",
+  "FinalExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "HarnessSha256": "C2DEBE4307D8E430B157730895B97FBC4873B7C541D7BFADB3310F55B89BF10E",
+  "SourceReportFileName": "20261029_125233_693_candidate_harness.json",
+  "SourceReportSha256": "CE751A113C300E63AF444C01236B4B086B29CFB3602A4C7F40A5A339ED1A9046",
+  "SourceReportSuccess": false,
+  "RequestedRunsPerScene": 3,
+  "RequestedSampleSeconds": 15,
+  "CompletedValidRuns": [
+    {
+      "Scenario": "overview",
+      "Run": 1,
+      "WindowStateValid": true,
+      "ElapsedSeconds": 15.5779691,
+      "CpuSeconds": 0.109375,
+      "CpuPercentOfMachine": 0.04388208409015267,
+      "CpuPercentOfOneCore": 0.7021133454424427,
+      "AverageWorkingSetBytes": 125340416,
+      "PeakWorkingSetBytes": 127332352,
+      "AveragePrivateBytes": 131982848,
+      "PeakPrivateBytes": 133943296,
+      "ForegroundSamples": 0,
+      "VisibleSamples": 16,
+      "MinimizedSamples": 0,
+      "SampleCount": 16,
+      "FixtureEndpointsBefore": 513,
+      "FixtureEndpointsAfter": 513,
+      "NaturalEndpointsBefore": 482,
+      "NaturalEndpointsAfter": 492
+    }
+  ],
+  "ExcludedInvalidAttempts": [
+    {
+      "Scenario": "overview",
+      "Run": 2,
+      "Attempt": 1,
+      "Excluded": true,
+      "Reason": "Actual own HWND state changed during sampling; excluded from scenario results.",
+      "WindowStateValid": false,
+      "ElapsedSeconds": 15.6435317,
+      "VisibleSamples": 16,
+      "MinimizedSamples": 10,
+      "SampleCount": 16
+    },
+    {
+      "Scenario": "overview",
+      "Run": 2,
+      "Attempt": 2,
+      "Excluded": true,
+      "Reason": "Actual own HWND state changed during sampling; excluded from scenario results.",
+      "WindowStateValid": false,
+      "ElapsedSeconds": 15.7229693,
+      "VisibleSamples": 16,
+      "MinimizedSamples": 2,
+      "SampleCount": 16
+    }
+  ],
+  "UnmeasuredScenes": [
+    "expanded",
+    "background"
+  ],
+  "OverviewCompletedRuns": 1,
+  "OverviewRequestedRuns": 3,
+  "StopReason": "The user said the desktop was in active use and asked to preserve existing measurements. After overview run 2 had invalid own-window state on its first attempt and sole allowed retry, no additional visible benchmarks, GUI runs or native launches were started.",
+  "WindowStateMethod": "Every own HWND sample records native IsWindowVisible and IsIconic. Retained visible-scene samples must be visible and not minimized. A mismatching run is excluded and retried at most once. The final candidate run stopped after that retry also contained minimized samples. The source of the non-requested minimization was not established. Foreground focus is recorded separately; states between samples and physical occlusion are not observed.",
+  "ControlledLoadContinuity": "The baseline load was ended gracefully and restarted before the final candidate run using the same fixture script, 256 TCP loopback connection pairs and 513 endpoints. The process instance differed. Both snapshots bracketing the retained final candidate run contained 513 fixture endpoints. Baseline pre-minwidth evidence also reports 513 throughout.",
+  "ResourceInterpretation": "The single successful final overview run is listed descriptively and is not an aggregate, improvement claim, or complete before/after comparison. Memory and CPU include the common test host and in-process sampling overhead.",
+  "PreMinwidthComparisonFileName": "performance-pre-minwidth-0.1.1.json",
+  "PreMinwidthComparisonFileSha256": "3B710FCBB3AA0F01BE3D0F7B086E0B55DB83A4A57D78183829725BA186B118F7",
+  "PreMinwidthCandidateSha256": "F2D194843F15451CD01FB518268DAC2711526BF82D2C4A2C25749A5D54311720"
+}

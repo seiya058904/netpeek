@@ -21,7 +21,7 @@ internal static class ViewModelTests
     private static List<EndpointView> Endpoints(ConnectionStore store) { return store.Applications.SelectMany(a => a.Processes).SelectMany(p => p.Endpoints).ToList(); }
     public static int Main()
     {
-        try { StableAndGrouping(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); Copies(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
+        try { StableAndGrouping(); DeltaNotifications(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); UnverifiedSlots(); Copies(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
         catch (Exception ex) { Console.Error.WriteLine("FAIL " + ex); return 1; }
     }
     private static void StableAndGrouping()
@@ -46,6 +46,34 @@ internal static class ViewModelTests
         IList<Observation> old = new List<Observation> { new Observation { Record = Row("older", 1, null), LastSeenUtc = Epoch.AddSeconds(5) } };
         store.Apply(Snap(11), old);
         Check(store.Applications.Count == 1 && store.Applications[0].Path == @"C:\One\app.exe" && process.Identity.Path == @"C:\One\app.exe" && process.Endpoints.Count == 2, "older hidden history never overwrites newer process path metadata");
+    }
+    private static void DeltaNotifications()
+    {
+        ConnectionStore store = new ConnectionStore();
+        store.Apply(Snap(0, Row("a", 1, @"C:\One\app.exe"), Row("b", 1, @"C:\One\app.exe")));
+        ApplicationView app = store.Applications.Single(); ProcessView process = app.Processes.Single(); EndpointView endpoint = process.Endpoints[0];
+        int notifications = 0, collectionChanges = 0;
+        app.PropertyChanged += delegate { notifications++; }; process.PropertyChanged += delegate { notifications++; };
+        foreach (EndpointView view in process.Endpoints) view.PropertyChanged += delegate { notifications++; };
+        store.Applications.CollectionChanged += delegate { collectionChanges++; }; app.Processes.CollectionChanged += delegate { collectionChanges++; }; process.Endpoints.CollectionChanged += delegate { collectionChanges++; };
+        object brush = app.StatusBrush;
+        bool changed = store.Apply(Snap(20, Row("a", 1, @"C:\One\app.exe"), Row("b", 1, @"C:\One\app.exe")));
+        Check(!changed && notifications == 0 && collectionChanges == 0, "unchanged live sample raises zero property or collection notifications and no filter refresh");
+        Check(endpoint.LastSeenUtc == Epoch.AddSeconds(20) && endpoint.TimeText == "本次快照", "silent current timestamp remains accurate for subsequent history");
+        Check(Object.ReferenceEquals(brush, app.StatusBrush) && app.StatusBrush.IsFrozen, "status brush is frozen and reused across reads and unchanged samples");
+        Dictionary<string, int> endpointEvents = new Dictionary<string, int>();
+        endpoint.PropertyChanged += delegate(object sender, System.ComponentModel.PropertyChangedEventArgs args) { int count; endpointEvents.TryGetValue(args.PropertyName, out count); endpointEvents[args.PropertyName] = count + 1; };
+        EndpointRecord closing = Row("a", 1, @"C:\One\app.exe"); closing.State = "CLOSE_WAIT";
+        Check(store.Apply(Snap(21, closing, Row("b", 1, @"C:\One\app.exe"))) && endpointEvents.Count == 1 && endpointEvents.ContainsKey("Status"), "state transition notifies only the endpoint display property that changed");
+        int titleEvents = 0, noteEvents = 0;
+        process.PropertyChanged += delegate(object sender, System.ComponentModel.PropertyChangedEventArgs args) { if (args.PropertyName == "Title") titleEvents++; if (args.PropertyName == "Note") noteEvents++; };
+        EndpointRecord[] sameProcess = Enumerable.Range(0, 100).Select(i => Row("many" + i, 1, @"C:\One\app.exe")).ToArray();
+        foreach (EndpointRecord row in sameProcess) { row.Process.Name = "renamed"; row.Process.AccessNote = "new note"; }
+        store.Apply(Snap(22, sameProcess));
+        Check(titleEvents == 1 && noteEvents == 1, "one process identity notification pass for a hundred endpoints");
+        Check(endpoint.LastSeenUtc == Epoch.AddSeconds(21) && !endpoint.IsCurrent && endpoint.TimeText == Epoch.AddSeconds(21).ToLocalTime().ToString("HH:mm:ss"), "transition to history displays last real observation rather than closure time");
+        notifications = 0; collectionChanges = 0;
+        Check(!store.Apply(Snap(23, sameProcess)) && notifications == 0 && collectionChanges == 0, "mixed stable current and historical sample remains notification-free");
     }
     private static void PartialAndScope()
     {
@@ -81,6 +109,12 @@ internal static class ViewModelTests
         Check(history.Snapshot().Count == 12005 && Endpoints(store).Count == 12005 && !history.Truncated && !store.HistoryTruncated, "current connections are not capped by historical limit");
         NetworkSnapshot gone = Snap(1); history.Accept(gone); store.Apply(gone);
         Check(history.Snapshot().Count == 12000 && Endpoints(store).Count == 12000 && history.Truncated && store.HistoryTruncated, "historical records bounded at 12000 with truncation reported");
+        history.Accept(Snap(2)); store.Apply(Snap(2));
+        Check(history.Truncated && store.HistoryTruncated, "history truncation remains visible on subsequent under-limit samples");
+        NetworkSnapshot failed = Snap(3); failed.IsComplete = false; history.Accept(failed); store.Apply(failed);
+        Check(history.Truncated && store.HistoryTruncated, "incomplete sample cannot clear an existing truncation warning");
+        history.Accept(Snap(60)); store.Apply(Snap(60));
+        Check(history.Truncated && store.HistoryTruncated, "truncation warning includes the lost record's exact retention boundary");
         history.Accept(Snap(62)); store.Apply(Snap(62));
         Check(history.Snapshot().Count == 0 && Endpoints(store).Count == 0 && !history.Truncated && !store.HistoryTruncated, "expired history does not report capacity truncation");
     }
@@ -102,5 +136,32 @@ internal static class ViewModelTests
         copy[0].Record.State = "CLOSED"; copy[0].Record.Process.Name = "mutated"; copy[0].LastSeenUtc = Epoch.AddYears(1); copy.Clear();
         Observation retained = history.Snapshot().Single();
         Check(retained.Record.State == "ESTABLISHED" && retained.Record.Process.Name == "app" && retained.LastSeenUtc == Epoch, "returned history snapshots cannot mutate retained state");
+    }
+    private static EndpointRecord Unverified(string epoch)
+    {
+        EndpointRecord record = Row("", 9, null); record.Process.StartTimeUtcTicks = 0;
+        record.Process.InstanceId = "unknown:9:" + epoch; record.Process.AppKey = "instance:" + record.Process.InstanceId;
+        record.Key = record.Process.InstanceId + "|TCP|IPv4|127.0.0.1:1234|127.0.0.1:4321";
+        return record;
+    }
+    private static void UnverifiedSlots()
+    {
+        ConnectionStore store = new ConnectionStore(); CaptureHistory history = new CaptureHistory();
+        NetworkSnapshot first = Snap(0, Unverified("one")); history.Accept(first); store.Apply(first);
+        ApplicationView app = store.Applications.Single(); ProcessView process = app.Processes.Single(); EndpointView endpoint = process.Endpoints.Single();
+        app.IsExpanded = true; process.IsExpanded = true;
+        string rawKey = endpoint.Record.Key;
+        int notifications = 0; app.PropertyChanged += delegate { notifications++; }; process.PropertyChanged += delegate { notifications++; }; endpoint.PropertyChanged += delegate { notifications++; };
+        NetworkSnapshot next = Snap(1, Unverified("two")); history.Accept(next);
+        Check(!store.Apply(next, history.Snapshot()) && notifications == 0 && Object.ReferenceEquals(app, store.Applications.Single()) && Object.ReferenceEquals(process, app.Processes.Single()) && Object.ReferenceEquals(endpoint, process.Endpoints.Single()), "unverified display slots reuse containers without notifications across epochs");
+        Check(app.IsExpanded && process.IsExpanded && endpoint.Record.Key != rawKey && process.Identity.InstanceId == "unknown:9:two" && process.Note.Contains("身份不可核验"), "display continuity retains interaction only while raw identity and explicit uncertainty stay truthful");
+        Check(history.Snapshot().Count == 1 && history.Snapshot()[0].Record.Process.InstanceId == "unknown:9:two", "background history never accumulates unknown epochs");
+        NetworkSnapshot known = Snap(2, Row("verified", 9, @"C:\One\app.exe")); history.Accept(known); store.Apply(known, history.Snapshot());
+        Check(store.Applications.Count == 1 && !Object.ReferenceEquals(store.Applications[0], app) && Endpoints(store).Single().Key == "verified", "becoming verified creates a separate trusted identity with no inherited unknown history");
+        NetworkSnapshot unknownAgain = Snap(3, Unverified("three")); history.Accept(unknownAgain); store.Apply(unknownAgain, history.Snapshot());
+        List<EndpointView> all = Endpoints(store);
+        Check(all.Count == 2 && all.Single(e => e.Key == "verified").IsCurrent == false && all.Single(e => e.IsCurrent).Record.Process.StartTimeUtcTicks == 0, "losing verification keeps earlier trusted history separate from the unknown current slot");
+        history.Accept(Snap(4)); store.Apply(Snap(4), history.Snapshot());
+        Check(Endpoints(store).Count == 1 && Endpoints(store)[0].Key == "verified", "absent unknown slot is discarded instead of becoming trusted history");
     }
 }

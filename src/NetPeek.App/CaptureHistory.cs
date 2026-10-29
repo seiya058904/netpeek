@@ -20,6 +20,7 @@ namespace NetPeek
         private readonly object gate = new object();
         private readonly Dictionary<string, Observation> observations = new Dictionary<string, Observation>();
         private bool truncated;
+        private DateTime truncatedUntilUtc = DateTime.MinValue;
         public bool Truncated { get { lock (gate) { return truncated; } } }
 
         public void Accept(NetworkSnapshot snapshot)
@@ -37,8 +38,13 @@ namespace NetPeek
                 foreach (string key in observations.Where(p => !current.Contains(p.Key) &&
                     (p.Value.Record.Process.StartTimeUtcTicks <= 0 || (snapshot.CapturedAtUtc - p.Value.LastSeenUtc).TotalSeconds > HistorySeconds)).Select(p => p.Key).ToList()) observations.Remove(key);
                 var history = observations.Where(p => !current.Contains(p.Key)).OrderByDescending(p => p.Value.LastSeenUtc).ToList();
-                truncated = history.Count > HistoryLimit;
-                foreach (var entry in history.Skip(HistoryLimit)) observations.Remove(entry.Key);
+                foreach (var entry in history.Skip(HistoryLimit)) {
+                    DateTime expires = entry.Value.LastSeenUtc.AddSeconds(HistorySeconds);
+                    if (expires > truncatedUntilUtc) truncatedUntilUtc = expires;
+                    observations.Remove(entry.Key);
+                }
+                // A later small/empty sample cannot restore records already discarded.
+                truncated = truncatedUntilUtc != DateTime.MinValue && snapshot.CapturedAtUtc <= truncatedUntilUtc;
             }
         }
 

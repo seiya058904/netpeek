@@ -1,6 +1,8 @@
 ﻿param([switch]$Package, [switch]$SkipBuild)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+$version = ([regex]::Match((Get-Content -LiteralPath (Join-Path $root 'src\NetPeek.App\AssemblyInfo.cs') -Raw -Encoding UTF8), 'AssemblyFileVersion\("([0-9]+\.[0-9]+\.[0-9]+)\.[0-9]+"\)')).Groups[1].Value
+if (!$version) { throw 'Cannot determine the package version from AssemblyInfo.cs.' }
 $framework = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
 $compiler = Join-Path $framework 'csc.exe'
 if (!(Test-Path -LiteralPath $compiler)) { throw '需要 Windows x64 和 .NET Framework 4.8。' }
@@ -39,9 +41,9 @@ if ($Package) {
       }
     }
   } finally { $zip.Dispose(); $stream.Dispose() }
-  Copy-Item -LiteralPath $sourceZip -Destination (Join-Path $root 'dist\NetPeek_0.1.0_source.zip')
+  Copy-Item -LiteralPath $sourceZip -Destination (Join-Path $root ('dist\NetPeek_' + $version + '_source.zip'))
   Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $output -Recurse -Force
-  $archive = Join-Path $root 'dist\NetPeek_0.1.0_windows_x64.zip'
+  $archive = Join-Path $root ('dist\NetPeek_' + $version + '_windows_x64.zip')
   Compress-Archive -LiteralPath $output -DestinationPath $archive -Force
   Get-FileHash -LiteralPath $archive -Algorithm SHA256 | Format-List
 }

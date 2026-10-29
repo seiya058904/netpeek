@@ -25,7 +25,7 @@ namespace NetPeek
     public sealed class EndpointView : Bindable
     {
         public EndpointRecord Record { get; private set; }
-        public string Key { get { return Record.Key; } }
+        public string Key { get; private set; }
         public DateTime LastSeenUtc { get; private set; }
         private bool current;
         public bool IsCurrent { get { return current; } set { if (Set(ref current, value, "IsCurrent")) { Changed("Status"); Changed("TimeText"); Changed("Opacity"); } } }
@@ -34,16 +34,34 @@ namespace NetPeek
         public string Remote { get { return Record.Protocol == "UDP" ? "未知 · 系统表不提供" : Record.State == "LISTEN" ? "—" : Format(Record.RemoteAddress, Record.RemotePort); } }
         public string Scope { get { return Record.Protocol == "UDP" || Record.State == "LISTEN" ? "本地端点" : AddressScope(Record.RemoteAddress); } }
         public string Status { get { return !IsCurrent ? "历史出现" : StateLabel(Record.State); } }
-        public string TimeText { get { return LastSeenUtc.ToLocalTime().ToString("HH:mm:ss"); } }
+        public string TimeText { get { return IsCurrent ? "本次快照" : LastSeenUtc.ToLocalTime().ToString("HH:mm:ss"); } }
         public double Opacity { get { return IsCurrent ? 1 : 0.62; } }
         public string CopyText { get { return Record.Protocol == "UDP" || Record.State == "LISTEN" ? Local : Remote; } }
-        public EndpointView(EndpointRecord record, DateTime time) { Record = record; LastSeenUtc = time; current = true; }
-        public void Update(EndpointRecord record, DateTime time)
+        public EndpointView(EndpointRecord record, DateTime time) : this(record, time, record.Key) { }
+        internal EndpointView(EndpointRecord record, DateTime time, string displayKey) { Key = displayKey; Record = record; LastSeenUtc = time; current = true; }
+        public void Update(EndpointRecord record, DateTime time) { Update(record, time, true); }
+        internal bool Update(EndpointRecord record, DateTime time, bool isCurrent)
         {
-            bool changed = Record.State != record.State;
-            Record = record; LastSeenUtc = time; IsCurrent = true;
-            if (changed) { Changed("Status"); Changed("Remote"); Changed("CopyText"); }
-            Changed("TimeText");
+            bool state = Record.State != record.State;
+            bool transport = Record.Protocol != record.Protocol || Record.AddressFamily != record.AddressFamily;
+            bool local = Record.LocalAddress != record.LocalAddress || Record.LocalPort != record.LocalPort;
+            bool remote = Record.RemoteAddress != record.RemoteAddress || Record.RemotePort != record.RemotePort;
+            bool currentChanged = current != isCurrent;
+            string previousTime = TimeText;
+            string previousRemote = remote || transport || state ? Remote : null;
+            string previousScope = remote || transport || state ? Scope : null;
+            string previousCopy = local || remote || transport || state ? CopyText : null;
+            string previousStatus = state || currentChanged ? Status : null;
+            Record = record; LastSeenUtc = time; current = isCurrent;
+            if (transport) Changed("Transport");
+            if (local) Changed("Local");
+            if ((remote || transport || state) && previousRemote != Remote) Changed("Remote");
+            if ((remote || transport || state) && previousScope != Scope) Changed("Scope");
+            if ((local || remote || transport || state) && previousCopy != CopyText) Changed("CopyText");
+            if ((state || currentChanged) && previousStatus != Status) Changed("Status");
+            if (currentChanged) { Changed("IsCurrent"); Changed("Opacity"); }
+            if (previousTime != TimeText) Changed("TimeText");
+            return state || transport || local || remote || currentChanged;
         }
         public static string Format(string address, int port) { if (String.IsNullOrEmpty(address)) return "未知"; return (address.Contains(":") ? "[" + address + "]" : address) + ":" + port; }
         public static string StateLabel(string state)
@@ -84,16 +102,29 @@ namespace NetPeek
     public sealed class ProcessView : Bindable
     {
         public ProcessIdentity Identity { get; private set; }
-        public string Key { get { return Identity.InstanceId; } }
+        public string Key { get; private set; }
         public string Title { get { return "PID " + Identity.ProcessId + "  ·  " + Identity.Name; } }
-        public string Note { get { return String.IsNullOrEmpty(Identity.AccessNote) ? "进程创建于 " + (Identity.StartTimeUtcTicks > 0 ? new DateTime(Identity.StartTimeUtcTicks, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm:ss") : "未知") : Identity.AccessNote; } }
+        public string Note { get { return Identity.StartTimeUtcTicks <= 0 ? (Identity.AccessNote != null && Identity.AccessNote.Contains("身份不可核验") ? Identity.AccessNote : "身份不可核验 · " + (Identity.AccessNote ?? "仅代表本次快照，不确定归属")) : String.IsNullOrEmpty(Identity.AccessNote) ? "进程创建于 " + new DateTime(Identity.StartTimeUtcTicks, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm:ss") : Identity.AccessNote; } }
         private bool expanded;
         public bool IsExpanded { get { return expanded; } set { Set(ref expanded, value, "IsExpanded"); } }
         public ObservableCollection<EndpointView> Endpoints { get; private set; }
-        public string CountText { get { return Endpoints.Count(x => x.IsCurrent) + " 个当前端点"; } }
-        public ProcessView(ProcessIdentity identity) { Identity = identity; Endpoints = new ObservableCollection<EndpointView>(); }
-        public void UpdateIdentity(ProcessIdentity identity) { Identity = identity; Changed("Title"); Changed("Note"); }
-        public void NotifyCounts() { Changed("CountText"); }
+        private int currentCount;
+        public string CountText { get { return currentCount + " 个当前端点"; } }
+        public ProcessView(ProcessIdentity identity) : this(identity, identity.InstanceId) { }
+        internal ProcessView(ProcessIdentity identity, string displayKey) { Key = displayKey; Identity = identity; Endpoints = new ObservableCollection<EndpointView>(); }
+        public bool UpdateIdentity(ProcessIdentity identity)
+        {
+            bool titleChanged = Identity.ProcessId != identity.ProcessId || Identity.Name != identity.Name;
+            bool noteChanged = Identity.StartTimeUtcTicks != identity.StartTimeUtcTicks || Identity.AccessNote != identity.AccessNote;
+            string oldNote = noteChanged ? Note : null;
+            bool searchChanged = titleChanged || Identity.Path != identity.Path;
+            Identity = identity;
+            if (titleChanged) Changed("Title");
+            if (noteChanged && oldNote != Note) Changed("Note");
+            return searchChanged;
+        }
+        internal void SetCurrentCount(int count) { if (currentCount != count) { currentCount = count; Changed("CountText"); } }
+        public void NotifyCounts() { SetCurrentCount(Endpoints.Count(x => x.IsCurrent)); }
     }
 
     public sealed class ApplicationView : Bindable
@@ -107,23 +138,51 @@ namespace NetPeek
         public ImageSource Icon { get { return icon; } set { Set(ref icon, value, "Icon"); } }
         private bool expanded;
         public bool IsExpanded { get { return expanded; } set { if (Set(ref expanded, value, "IsExpanded") && value && Processes.Count == 1) Processes[0].IsExpanded = true; } }
-        private int established, listening, udp, currentCount;
+        private int established, listening, udp, currentCount, processCount;
+        private static readonly Brush ConnectedBrush = FrozenBrush(0xE1, 0xF1, 0xE7);
+        private static readonly Brush HistoryBrush = FrozenBrush(0xEF, 0xF0, 0xED);
+        private static readonly Brush OtherBrush = FrozenBrush(0xED, 0xF1, 0xF7);
+        private static Brush FrozenBrush(byte r, byte g, byte b) { SolidColorBrush result = new SolidColorBrush(Color.FromRgb(r, g, b)); result.Freeze(); return result; }
         public int Established { get { return established; } }
         public int CurrentCount { get { return currentCount; } }
         public string CountText { get { return currentCount.ToString(); } }
         public string CountLabel { get { return currentCount > 0 ? "当前端点" : "仅近期记录"; } }
         public string Subtitle { get { return Processes.Count + " 个进程" + (String.IsNullOrEmpty(Path) ? "  ·  归属信息受限" : "  ·  " + System.IO.Path.GetFileName(Path)); } }
         public string Status { get { return established > 0 ? "TCP 已建立" : currentCount == 0 ? "历史出现" : listening > 0 && udp == 0 && currentCount == listening ? "仅监听" : udp > 0 && currentCount == udp ? "UDP 本地端点" : "本地 / 其他状态"; } }
-        public Brush StatusBrush { get { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(established > 0 ? "#E1F1E7" : currentCount == 0 ? "#EFF0ED" : "#EDF1F7")); } }
+        public Brush StatusBrush { get { return established > 0 ? ConnectedBrush : currentCount == 0 ? HistoryBrush : OtherBrush; } }
         public ObservableCollection<ProcessView> Processes { get; private set; }
-        public ApplicationView(ProcessIdentity identity) { Key = identity.AppKey; Name = identity.Name; Path = identity.Path; Processes = new ObservableCollection<ProcessView>(); }
-        public void Recount()
+        public ApplicationView(ProcessIdentity identity) : this(identity, identity.AppKey) { }
+        internal ApplicationView(ProcessIdentity identity, string displayKey) { Key = displayKey; Name = identity.Name; Path = identity.Path; Processes = new ObservableCollection<ProcessView>(); }
+        internal bool UpdateMetadata(ProcessIdentity identity)
         {
-            var endpoints = Processes.SelectMany(p => p.Endpoints).Where(e => e.IsCurrent).ToList();
-            currentCount = endpoints.Count; established = endpoints.Count(e => e.Record.Protocol == "TCP" && e.Record.State == "ESTABLISHED");
-            listening = endpoints.Count(e => e.Record.State == "LISTEN"); udp = endpoints.Count(e => e.Record.Protocol == "UDP");
-            foreach (var p in Processes) p.NotifyCounts();
-            foreach (string property in new[] { "CurrentCount", "CountText", "CountLabel", "Subtitle", "Status", "StatusBrush", "Established" }) Changed(property);
+            bool changed = false;
+            if (!String.Equals(Name, identity.Name, StringComparison.OrdinalIgnoreCase)) { string oldInitial = Initial; Name = identity.Name; Changed("Name"); if (oldInitial != Initial) Changed("Initial"); changed = true; }
+            if (!String.Equals(Path, identity.Path, StringComparison.OrdinalIgnoreCase)) { Path = identity.Path; Changed("Path"); Changed("PathText"); Changed("Subtitle"); changed = true; }
+            return changed;
+        }
+        public bool Recount()
+        {
+            int oldCurrent = currentCount, oldEstablished = established, oldProcesses = processCount;
+            string oldStatus = Status; Brush oldBrush = StatusBrush;
+            currentCount = established = listening = udp = 0;
+            foreach (var process in Processes) {
+                int count = 0;
+                foreach (var endpoint in process.Endpoints) {
+                    if (!endpoint.IsCurrent) continue;
+                    count++; currentCount++;
+                    if (endpoint.Record.Protocol == "TCP" && endpoint.Record.State == "ESTABLISHED") established++;
+                    if (endpoint.Record.State == "LISTEN") listening++;
+                    if (endpoint.Record.Protocol == "UDP") udp++;
+                }
+                process.SetCurrentCount(count);
+            }
+            processCount = Processes.Count;
+            if (oldCurrent != currentCount) { Changed("CurrentCount"); Changed("CountText"); if ((oldCurrent == 0) != (currentCount == 0)) Changed("CountLabel"); }
+            if (oldEstablished != established) Changed("Established");
+            if (oldProcesses != processCount) Changed("Subtitle");
+            if (oldStatus != Status) Changed("Status");
+            if (!Object.ReferenceEquals(oldBrush, StatusBrush)) Changed("StatusBrush");
+            return oldCurrent != currentCount || oldEstablished != established || oldProcesses != processCount || oldStatus != Status;
         }
         public bool Matches(string search)
         {
@@ -143,66 +202,129 @@ namespace NetPeek
         private readonly Dictionary<string, ProcessView> processes = new Dictionary<string, ProcessView>();
         private readonly Dictionary<string, EndpointView> endpoints = new Dictionary<string, EndpointView>();
         private readonly Dictionary<string, DateTime> identityTimes = new Dictionary<string, DateTime>();
+        private readonly Dictionary<string, ApplicationView> processOwners = new Dictionary<string, ApplicationView>();
+        private DateTime truncatedUntilUtc = DateTime.MinValue;
+        private sealed class Pending { internal EndpointRecord Record; internal DateTime Seen; internal bool Current; }
         public bool HistoryTruncated { get; private set; }
         public ConnectionStore() { Applications = new ObservableCollection<ApplicationView>(); }
-        public void Apply(NetworkSnapshot snapshot)
+        public bool Apply(NetworkSnapshot snapshot)
         {
-            Apply(snapshot, null);
+            return Apply(snapshot, null);
         }
-        public void Apply(NetworkSnapshot snapshot, IList<Observation> observed)
+        // True means search/filter membership or visible summaries may have changed.
+        // Timestamp-only sampling does not require rebuilding the filtered collection.
+        public bool Apply(NetworkSnapshot snapshot, IList<Observation> observed)
         {
-            if (!snapshot.IsComplete) return; // A partial table read cannot prove an endpoint closed.
-            foreach (var endpoint in endpoints.Values) endpoint.IsCurrent = false;
+            if (!snapshot.IsComplete) return false; // A partial table read cannot prove an endpoint closed.
+            bool changed = false;
+            HashSet<ApplicationView> recount = new HashSet<ApplicationView>();
+            Dictionary<string, Pending> pending = new Dictionary<string, Pending>();
+            HashSet<string> currentKeys = new HashSet<string>();
+            Dictionary<string, int> unknownDuplicates = new Dictionary<string, int>();
+            foreach (var record in snapshot.Endpoints) {
+                string key = DisplayEndpointKey(record, unknownDuplicates);
+                currentKeys.Add(key);
+                pending[key] = new Pending { Record = record, Seen = snapshot.CapturedAtUtc, Current = true };
+            }
             if (observed != null)
             {
                 foreach (var observation in observed)
                 {
                     if (observation == null || observation.Record == null || observation.Record.Process.StartTimeUtcTicks <= 0 ||
                         observation.LastSeenUtc > snapshot.CapturedAtUtc || (snapshot.CapturedAtUtc - observation.LastSeenUtc).TotalSeconds > HistorySeconds) continue;
+                    if (currentKeys.Contains(observation.Record.Key)) continue;
                     EndpointView existing;
                     if (endpoints.TryGetValue(observation.Record.Key, out existing) && existing.LastSeenUtc >= observation.LastSeenUtc) continue;
-                    ApplyRecord(observation.Record, observation.LastSeenUtc, false);
+                    Pending previous;
+                    if (pending.TryGetValue(observation.Record.Key, out previous) && previous.Seen >= observation.LastSeenUtc) continue;
+                    pending[observation.Record.Key] = new Pending { Record = observation.Record, Seen = observation.LastSeenUtc };
                 }
             }
-            foreach (var record in snapshot.Endpoints) ApplyRecord(record, snapshot.CapturedAtUtc, true);
+            // Select one newest identity per process before touching any endpoint.
+            Dictionary<string, Pending> identities = new Dictionary<string, Pending>();
+            foreach (var item in pending.Values) {
+                string key = DisplayProcessKey(item.Record.Process);
+                Pending previous;
+                if (!identities.TryGetValue(key, out previous) || item.Current && !previous.Current || item.Current == previous.Current && item.Seen > previous.Seen) identities[key] = item;
+            }
+            foreach (var identity in identities) changed |= ApplyIdentity(identity.Key, identity.Value, recount);
+            foreach (var pair in pending) {
+                var item = pair.Value;
+                EndpointView endpoint;
+                if (endpoints.TryGetValue(pair.Key, out endpoint)) {
+                    if (endpoint.Update(item.Record, item.Seen, item.Current)) { changed = true; recount.Add(processOwners[DisplayProcessKey(item.Record.Process)]); }
+                }
+                else {
+                    endpoint = new EndpointView(item.Record, item.Seen, pair.Key); endpoint.IsCurrent = item.Current;
+                    endpoints.Add(pair.Key, endpoint); processes[DisplayProcessKey(item.Record.Process)].Endpoints.Add(endpoint); changed = true;
+                    recount.Add(processOwners[DisplayProcessKey(item.Record.Process)]);
+                }
+            }
+            foreach (var endpoint in endpoints.Values) {
+                if (endpoint.IsCurrent && !currentKeys.Contains(endpoint.Key)) { endpoint.IsCurrent = false; changed = true; recount.Add(processOwners[DisplayProcessKey(endpoint.Record.Process)]); }
+            }
             // 不可核验身份仅显示当前快照，避免猜测历史归属。
             foreach (var endpoint in endpoints.Values.Where(e => !e.IsCurrent && (e.Record.Process.StartTimeUtcTicks <= 0 ||
-                (snapshot.CapturedAtUtc - e.LastSeenUtc).TotalSeconds > HistorySeconds)).ToList()) RemoveEndpoint(endpoint);
+                (snapshot.CapturedAtUtc - e.LastSeenUtc).TotalSeconds > HistorySeconds)).ToList()) { recount.Add(processOwners[DisplayProcessKey(endpoint.Record.Process)]); RemoveEndpoint(endpoint); changed = true; }
             var history = endpoints.Values.Where(e => !e.IsCurrent).OrderByDescending(e => e.LastSeenUtc).ToList();
-            HistoryTruncated = history.Count > HistoryLimit;
-            foreach (var endpoint in history.Skip(HistoryLimit)) RemoveEndpoint(endpoint);
+            foreach (var endpoint in history.Skip(HistoryLimit)) {
+                DateTime expires = endpoint.LastSeenUtc.AddSeconds(HistorySeconds);
+                if (expires > truncatedUntilUtc) truncatedUntilUtc = expires;
+                recount.Add(processOwners[DisplayProcessKey(endpoint.Record.Process)]); RemoveEndpoint(endpoint); changed = true;
+            }
+            HistoryTruncated = truncatedUntilUtc != DateTime.MinValue && snapshot.CapturedAtUtc <= truncatedUntilUtc;
             foreach (var app in Applications.ToList()) {
-                foreach (var process in app.Processes.Where(p => p.Endpoints.Count == 0).ToList()) { app.Processes.Remove(process); processes.Remove(process.Key); identityTimes.Remove(process.Key); }
-                if (app.Processes.Count == 0) { Applications.Remove(app); applications.Remove(app.Key); } else app.Recount();
+                foreach (var process in app.Processes.Where(p => p.Endpoints.Count == 0).ToList()) { app.Processes.Remove(process); processes.Remove(process.Key); identityTimes.Remove(process.Key); processOwners.Remove(process.Key); changed = true; }
+                if (app.Processes.Count == 0) { Applications.Remove(app); applications.Remove(app.Key); changed = true; } else if (recount.Contains(app)) changed |= app.Recount();
             }
+            return changed;
         }
-        private void ApplyRecord(EndpointRecord record, DateTime seen, bool current)
+        private bool ApplyIdentity(string key, Pending item, HashSet<ApplicationView> recount)
         {
+            bool changed = false;
+            ProcessIdentity identity = item.Record.Process;
             ProcessView process;
-            if (!processes.TryGetValue(record.Process.InstanceId, out process)) {
-                process = new ProcessView(record.Process); processes.Add(process.Key, process); identityTimes[process.Key] = seen;
+            if (!processes.TryGetValue(key, out process)) {
+                process = new ProcessView(identity, key); processes.Add(key, process); identityTimes[key] = item.Seen; changed = true;
             }
-            else if (current || identityTimes[process.Key] <= seen) {
-                process.UpdateIdentity(record.Process); identityTimes[process.Key] = seen;
+            else if (item.Current || identityTimes[key] <= item.Seen) {
+                changed |= process.UpdateIdentity(identity); identityTimes[key] = item.Seen;
             }
             // Older historical records may have lacked path access. Use the newest
             // process identity so merging hidden history never moves it backwards.
             ApplicationView app;
-            if (!applications.TryGetValue(process.Identity.AppKey, out app)) {
-                app = new ApplicationView(process.Identity); applications.Add(app.Key, app); Applications.Add(app);
+            string appKey = process.Identity.StartTimeUtcTicks > 0 ? process.Identity.AppKey : key;
+            if (!applications.TryGetValue(appKey, out app)) {
+                app = new ApplicationView(process.Identity, appKey); applications.Add(app.Key, app); Applications.Add(app); changed = true;
             }
-            if (!app.Processes.Contains(process)) {
-                foreach (var previous in Applications) previous.Processes.Remove(process);
-                app.Processes.Add(process);
+            else changed |= app.UpdateMetadata(process.Identity);
+            ApplicationView owner;
+            if (!processOwners.TryGetValue(key, out owner) || !Object.ReferenceEquals(owner, app)) {
+                if (owner != null) { owner.Processes.Remove(process); recount.Add(owner); }
+                app.Processes.Add(process); processOwners[key] = app; recount.Add(app); changed = true;
             }
-            EndpointView endpoint;
-            if (endpoints.TryGetValue(record.Key, out endpoint)) endpoint.Update(record, seen);
-            else { endpoint = new EndpointView(record, seen); endpoints.Add(record.Key, endpoint); process.Endpoints.Add(endpoint); }
-            endpoint.IsCurrent = current;
+            return changed;
+        }
+        private static string DisplayProcessKey(ProcessIdentity process)
+        {
+            // An unverified PID slot gives interaction continuity ONLY. It is not an
+            // identity: raw InstanceId/endpoint keys retain their per-capture epoch,
+            // and no absent unverified record is allowed into trusted history.
+            return process.StartTimeUtcTicks > 0 ? process.InstanceId : "display-only:unverified-pid:" + process.ProcessId;
+        }
+        private static string DisplayEndpointKey(EndpointRecord record, Dictionary<string, int> duplicates)
+        {
+            if (record.Process.StartTimeUtcTicks > 0) return record.Key;
+            string prefix = record.Process.InstanceId + "|";
+            string tuple = record.Key != null && record.Key.StartsWith(prefix, StringComparison.Ordinal) ? record.Key.Substring(prefix.Length) :
+                record.Protocol + "|" + record.AddressFamily + "|" + record.LocalAddress + ":" + record.LocalPort + "|" + record.RemoteAddress + ":" + record.RemotePort;
+            string key = DisplayProcessKey(record.Process) + "|" + tuple;
+            int count; duplicates.TryGetValue(key, out count); duplicates[key] = count + 1;
+            return count == 0 ? key : key + "|duplicate:" + count;
         }
         private void RemoveEndpoint(EndpointView endpoint)
         {
-            processes[endpoint.Record.Process.InstanceId].Endpoints.Remove(endpoint); endpoints.Remove(endpoint.Key);
+            processes[DisplayProcessKey(endpoint.Record.Process)].Endpoints.Remove(endpoint); endpoints.Remove(endpoint.Key);
         }
     }
 

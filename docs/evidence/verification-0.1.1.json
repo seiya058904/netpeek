@@ -1,0 +1,520 @@
+{
+  "SchemaVersion": 1,
+  "GeneratedAtUtc": "2026-10-29T12:53:53.7122803Z",
+  "Version": "0.1.1.0",
+  "ExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "ExecutableBytes": 126976,
+  "Notes": "Sanitized summary. Raw endpoint, process path and PID evidence stays in ignored artifacts. Artifact gates load the supplied EXE; source mock coverage is explicitly separate.",
+  "Gates": [
+    {
+      "Mode": "final EXE reflection",
+      "Passed": true,
+      "AssertionCount": 20,
+      "Command": ".\\tests\\run-core-tests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe",
+      "RawLog": "artifacts/v0.1.1/final-checks/core.log",
+      "RawLogSha256": "26208E6926A0C1EB4BBA0C5837E9C949BC8ABB7F6528A3DA5E5300A0AE59351F",
+      "LastWriteUtc": "2026-10-29T12:46:42.7438652Z",
+      "Assertions": [
+        "Tcp4Row native layout",
+        "Udp4Row native layout",
+        "Tcp6Row native layout",
+        "Udp6Row native layout",
+        "final decoder preserves network-order ports",
+        "final IPv6 decoder preserves address scope and owner PID",
+        "final listener has no invented remote endpoint",
+        "final decoder rejects truncated native buffers",
+        "final identity groups reliable paths and separates identical names at different paths",
+        "final identity rejects PID-reuse races",
+        "final unknown identities retain explicit uncertainty and separate epochs",
+        "final newly-started process is not falsely attributed",
+        "final inaccessible path retains verified process-instance grouping",
+        "final UNC normalization is lexical and canonical",
+        "final identity rejects ambiguous/non-executable path",
+        "final identity rejects ambiguous/non-executable path",
+        "final identity rejects ambiguous/non-executable path",
+        "final identity rejects ambiguous/non-executable path",
+        "final identity rejects ambiguous/non-executable path",
+        "final collector disposal prevents further capture"
+      ]
+    },
+    {
+      "Mode": "final EXE",
+      "Passed": true,
+      "AssertionCount": 36,
+      "Command": ".\\tests\\run-viewmodel-tests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe",
+      "RawLog": "artifacts/v0.1.1/final-checks/viewmodel.log",
+      "RawLogSha256": "3CF3EE698BF78AAEBCEBD22D27DD8B40CFAEB6942A9DCAAE270D8C123403327B",
+      "LastWriteUtc": "2026-10-29T12:46:42.8464091Z",
+      "Assertions": [
+        "same normalized path groups processes; same name different path stays separate",
+        "application process and endpoint view identity retained",
+        "refresh retains expanded state",
+        "unchanged live sample raises zero property or collection notifications and no filter refresh",
+        "silent current timestamp remains accurate for subsequent history",
+        "status brush is frozen and reused across reads and unchanged samples",
+        "state transition notifies only the endpoint display property that changed",
+        "one process identity notification pass for a hundred endpoints",
+        "transition to history displays last real observation rather than closure time",
+        "mixed stable current and historical sample remains notification-free",
+        "path access recovery reparents the existing process",
+        "path recovery preserves endpoint identity and process expansion",
+        "older hidden history never overwrites newer process path metadata",
+        "partial failure cannot close or expire existing observations",
+        "IPv4-mapped IPv6 loopback remains local",
+        "special-use and proxy test-range addresses are not labelled ordinary external destinations",
+        "connection born and gone while UI hidden survives as timestamped history",
+        "hidden recapture refreshes last-seen without claiming current connection",
+        "history retained through exact 60-second boundary",
+        "history older than 60 seconds expires and empty groups are removed",
+        "current connections are not capped by historical limit",
+        "historical records bounded at 12000 with truncation reported",
+        "history truncation remains visible on subsequent under-limit samples",
+        "incomplete sample cannot clear an existing truncation warning",
+        "truncation warning includes the lost record's exact retention boundary",
+        "expired history does not report capacity truncation",
+        "unknown identity still appears in current snapshot",
+        "unverifiable identity is never retained as history; verified inaccessible path is retained",
+        "unverified display slots reuse containers without notifications across epochs",
+        "display continuity retains interaction only while raw identity and explicit uncertainty stay truthful",
+        "background history never accumulates unknown epochs",
+        "becoming verified creates a separate trusted identity with no inherited unknown history",
+        "losing verification keeps earlier trusted history separate from the unknown current slot",
+        "absent unknown slot is discarded instead of becoming trusted history",
+        "capture history owns a deep copy of incoming mutable records",
+        "returned history snapshots cannot mutate retained state"
+      ]
+    },
+    {
+      "Mode": "final EXE reflection adapter",
+      "Passed": true,
+      "AssertionCount": 13,
+      "Command": ".\\tests\\run-icon-cache-tests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe",
+      "RawLog": "artifacts/v0.1.1/final-checks/icon-cache.log",
+      "RawLogSha256": "525D2AED34E717C605463B6C308DD106EDA8C5218BEDA671E1A049D232A30B3D",
+      "LastWriteUtc": "2026-10-29T12:46:42.7773415Z",
+      "Assertions": [
+        "application expires after 60-second history using fake clock",
+        "returning path has a new row requiring icon binding",
+        "positive cache entry remains eligible for a recreated row",
+        "cached icon binds again after application disappearance without re-extraction",
+        "LRU cache remains bounded and retains recently accessed positive entry",
+        "evicted path is extracted again rather than suppressed by an attempted-path set",
+        "failed extraction returns no icon and enters retry backoff",
+        "repeated refresh during backoff does not retry extraction",
+        "failed path retries and recovers at the backoff boundary",
+        "case-insensitive concurrent requests share exactly one in-flight task",
+        "all-inflight cache neither exceeds capacity nor evicts running extraction",
+        "dispose releases pending consumers and clears cached values",
+        "late completion cannot repopulate disposed cache or start another extraction"
+      ]
+    },
+    {
+      "Mode": "final EXE XAML and VM",
+      "Passed": true,
+      "AssertionCount": 49,
+      "Command": ".\\tests\\run-layout-tests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe",
+      "RawLog": "artifacts/v0.1.1/final-checks/layout.log",
+      "RawLogSha256": "3BB5273F8731A4512FC3DC84DE034FB8E0B6D6C6D67F66C38E91827A3BB4025F",
+      "LastWriteUtc": "2026-10-29T12:45:33.2605038Z",
+      "Assertions": [
+        "production work-area conversion is present in the built assembly",
+        "1920x1080 work area converts at simulated 100% DPI",
+        "1920x1080 work area converts at simulated 125% DPI",
+        "1920x1080 work area converts at simulated 150% DPI",
+        "1920x1080 work area converts at simulated 200% DPI",
+        "small 200% work area yields 512x360 DIPs",
+        "invalid DPI cannot create unbounded window constraints",
+        "1180x800 keeps at least 70 DIPs of application list with info and warning panels open",
+        "1180x800 actual endpoint content has usable width",
+        "1180x800 uses actual remote/status/copy leading columns",
+        "1180x800 remote/status/copy fit in the default viewport",
+        "1180x800 star address columns cannot squeeze state/copy/protocol labels below their usable widths",
+        "1180x800 binds and realizes the delivered executable's VM rows",
+        "1180x800 main content stays inside the client area after standard window chrome",
+        "1180x800 narrow grid releases frozen columns and has horizontal overflow navigation",
+        "1180x800 narrow endpoint columns can actually scroll horizontally",
+        "1180x800 copy action becomes fully reachable after narrow horizontal scrolling",
+        "720x480 keeps at least 70 DIPs of application list with info and warning panels open",
+        "720x480 actual endpoint content has usable width",
+        "720x480 uses actual remote/status/copy leading columns",
+        "720x480 remote/status/copy fit in the default viewport",
+        "720x480 star address columns cannot squeeze state/copy/protocol labels below their usable widths",
+        "720x480 binds and realizes the delivered executable's VM rows",
+        "720x480 main content stays inside the client area after standard window chrome",
+        "720x480 narrow grid releases frozen columns and has horizontal overflow navigation",
+        "720x480 narrow endpoint columns can actually scroll horizontally",
+        "720x480 copy action becomes fully reachable after narrow horizontal scrolling",
+        "640x360 keeps at least 70 DIPs of application list with info and warning panels open",
+        "640x360 actual endpoint content has usable width",
+        "640x360 uses actual remote/status/copy leading columns",
+        "640x360 remote/status/copy fit in the default viewport",
+        "640x360 star address columns cannot squeeze state/copy/protocol labels below their usable widths",
+        "640x360 binds and realizes the delivered executable's VM rows",
+        "640x360 main content stays inside the client area after standard window chrome",
+        "640x360 retains compact actions without consuming a sidebar column",
+        "640x360 narrow grid releases frozen columns and has horizontal overflow navigation",
+        "640x360 narrow endpoint columns can actually scroll horizontally",
+        "640x360 copy action becomes fully reachable after narrow horizontal scrolling",
+        "512x360 keeps at least 70 DIPs of application list with info and warning panels open",
+        "512x360 actual endpoint content has usable width",
+        "512x360 uses actual remote/status/copy leading columns",
+        "512x360 remote/status/copy fit in the default viewport",
+        "512x360 star address columns cannot squeeze state/copy/protocol labels below their usable widths",
+        "512x360 binds and realizes the delivered executable's VM rows",
+        "512x360 main content stays inside the client area after standard window chrome",
+        "512x360 retains compact actions without consuming a sidebar column",
+        "512x360 narrow grid releases frozen columns and has horizontal overflow navigation",
+        "512x360 narrow endpoint columns can actually scroll horizontally",
+        "512x360 copy action becomes fully reachable after narrow horizontal scrolling"
+      ]
+    },
+    {
+      "Mode": "final EXE controller",
+      "Passed": true,
+      "AssertionCount": 7,
+      "Command": ".\\tests\\run-controller-state-tests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe",
+      "RawLog": "artifacts/v0.1.1/final-checks/controller-state.log",
+      "RawLogSha256": "421A76F71200C03EA358A173BD15A8305A9B191B1B2CD5BC5094BE483432C4A0",
+      "LastWriteUtc": "2026-10-29T12:46:42.9696117Z",
+      "Assertions": [
+        "collector is stopped before synthetic publication; XAML window was never shown",
+        "controller applies one known complete baseline snapshot",
+        "hidden synthetic observations exceed history bound and genuinely set truncation",
+        "partial latest result displays collection failure and prior complete-sample truncation together",
+        "partial data and unseen history never replace the retained complete UI snapshot",
+        "partial render does not advance applied-snapshot count or freshness timestamp",
+        "controller disposal leaves no collector thread; owned window and tray are closed"
+      ]
+    },
+    {
+      "Mode": "source unit mocks, separate from final artifact checks",
+      "Passed": true,
+      "AssertionCount": 28,
+      "Command": ".\\tests\\run-core-tests.ps1",
+      "RawLog": "artifacts/v0.1.1/final-checks/core-source.log",
+      "RawLogSha256": "376A57C4436BC498B2D7564F5A557828F78425641770486BB553607C92672A7B",
+      "LastWriteUtc": "2026-10-29T12:07:25.7678817Z",
+      "Assertions": [
+        "TCP4 native stride",
+        "UDP4 native stride",
+        "TCP6 native stride",
+        "UDP6 native stride",
+        "network-order ports decode",
+        "IPv6 address and scope preserved",
+        "listener ignores meaningless remote fields",
+        "truncated native table rejected",
+        "same executable name different paths stay separate",
+        "normalized same path groups multiple process instances",
+        "PID reused during table capture becomes unknown",
+        "next capture resolves reused PID without stale metadata",
+        "unknown processes never merge by display name and remain explicitly unverified",
+        "process first seen after table capture not falsely attributed",
+        "verified instance with inaccessible path stays isolated",
+        "extended UNC normalizes lexically to the same reliable path group",
+        "extended local path normalizes without filesystem access",
+        "UNC dot segments normalize without expanding remote 8.3 aliases",
+        "non-executable or ambiguous path stays isolated",
+        "non-executable or ambiguous path stays isolated",
+        "non-executable or ambiguous path stays isolated",
+        "non-executable or ambiguous path stays isolated",
+        "non-executable or ambiguous path stays isolated",
+        "unknown PID keeps a distinct untrusted epoch on every sample",
+        "all four table failures reported distinctly from empty result",
+        "next capture recovers to complete empty snapshot",
+        "single table failure preserves successful table rows",
+        "dispose is idempotent and prevents later collection"
+      ]
+    }
+  ],
+  "Integration": {
+    "Passed": true,
+    "AssertionCount": 70,
+    "Elevated": false,
+    "Command": ".\\tests\\IntegrationTests.ps1 -Executable .\\dist\\NetPeek\\NetPeek.exe -OutputDirectory .\\artifacts\\v0.1.1\\final-integration-minwidth -LiveSockets -StressConnections 256 -ExternalHost github.com",
+    "TimestampUtc": "2026-10-29T12:47:07.362288Z",
+    "RawReport": "artifacts/v0.1.1/final-integration-minwidth/20261029_124644_299_results.json",
+    "RawReportSha256": "3DF8AF7A6B37F71E64BD9076F9B388190AE4525556F03C5933A4C395E2AB3180",
+    "Checks": [
+      {
+        "Name": "Ordinary permissions",
+        "Passed": true
+      },
+      {
+        "Name": "passive complete exit",
+        "Passed": true
+      },
+      {
+        "Name": "passive report identity/time",
+        "Passed": true
+      },
+      {
+        "Name": "passive all tables",
+        "Passed": true
+      },
+      {
+        "Name": "Passive stable TCP tuple/PID/state comparison",
+        "Passed": true
+      },
+      {
+        "Name": "Passive TCP evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "Passive stable UDP tuple/PID/state comparison",
+        "Passed": true
+      },
+      {
+        "Name": "Passive UDP evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "Passive UDP semantics",
+        "Passed": true
+      },
+      {
+        "Name": "controlled complete exit",
+        "Passed": true
+      },
+      {
+        "Name": "controlled report identity/time",
+        "Passed": true
+      },
+      {
+        "Name": "controlled all tables",
+        "Passed": true
+      },
+      {
+        "Name": "System TCP fixture 127.0.0.1",
+        "Passed": true
+      },
+      {
+        "Name": "TCP count 127.0.0.1",
+        "Passed": true
+      },
+      {
+        "Name": "TCP tuples/state/PID 127.0.0.1",
+        "Passed": true
+      },
+      {
+        "Name": "System TCP fixture ::1",
+        "Passed": true
+      },
+      {
+        "Name": "TCP count ::1",
+        "Passed": true
+      },
+      {
+        "Name": "TCP tuples/state/PID ::1",
+        "Passed": true
+      },
+      {
+        "Name": "UDP endpoint/PID 127.0.0.1",
+        "Passed": true
+      },
+      {
+        "Name": "UDP semantics 127.0.0.1",
+        "Passed": true
+      },
+      {
+        "Name": "UDP endpoint/PID ::1",
+        "Passed": true
+      },
+      {
+        "Name": "UDP semantics ::1",
+        "Passed": true
+      },
+      {
+        "Name": "external complete exit",
+        "Passed": true
+      },
+      {
+        "Name": "external report identity/time",
+        "Passed": true
+      },
+      {
+        "Name": "external all tables",
+        "Passed": true
+      },
+      {
+        "Name": "External system connection",
+        "Passed": true
+      },
+      {
+        "Name": "External tuple/PID/state",
+        "Passed": true
+      },
+      {
+        "Name": "before_exit complete exit",
+        "Passed": true
+      },
+      {
+        "Name": "before_exit report identity/time",
+        "Passed": true
+      },
+      {
+        "Name": "before_exit all tables",
+        "Passed": true
+      },
+      {
+        "Name": "Child before exit",
+        "Passed": true
+      },
+      {
+        "Name": "Child fixture exited",
+        "Passed": true
+      },
+      {
+        "Name": "after_exit complete exit",
+        "Passed": true
+      },
+      {
+        "Name": "after_exit report identity/time",
+        "Passed": true
+      },
+      {
+        "Name": "after_exit all tables",
+        "Passed": true
+      },
+      {
+        "Name": "Exited process disappears",
+        "Passed": true
+      },
+      {
+        "Name": "smoke exit cleanup",
+        "Passed": true
+      },
+      {
+        "Name": "smoke exit code",
+        "Passed": true
+      },
+      {
+        "Name": "smoke evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "smoke invocation identity",
+        "Passed": true
+      },
+      {
+        "Name": "smoke report freshness",
+        "Passed": true
+      },
+      {
+        "Name": "smoke final report",
+        "Passed": true
+      },
+      {
+        "Name": "smoke explicit success",
+        "Passed": true
+      },
+      {
+        "Name": "smoke valid applied snapshot",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty exit cleanup",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty exit code",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty invocation identity",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty report freshness",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty final report",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty explicit success",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_empty valid applied snapshot",
+        "Passed": true
+      },
+      {
+        "Name": "Complete empty snapshot is valid",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error exit cleanup",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error exit code",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error invocation identity",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error report freshness",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error final report",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error explicit success",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_ui_error valid applied snapshot",
+        "Passed": true
+      },
+      {
+        "Name": "UI failure invalidates earlier report",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error exit cleanup",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error exit code",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error evidence present",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error invocation identity",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error report freshness",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error final report",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error explicit success",
+        "Passed": true
+      },
+      {
+        "Name": "smoke_capture_error capture failure stays failure",
+        "Passed": true
+      }
+    ]
+  }
+}

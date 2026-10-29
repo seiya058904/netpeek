@@ -5,6 +5,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("NetPeek")]
 [assembly: AssemblyCompany("NetPeek contributors")]
 [assembly: AssemblyCopyright("Copyright © 2026 NetPeek contributors. AGPL-3.0-or-later.")]
-[assembly: AssemblyVersion("0.1.0.0")]
-[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.1.1.0")]
+[assembly: AssemblyFileVersion("0.1.1.0")]
 [assembly: ComVisible(false)]

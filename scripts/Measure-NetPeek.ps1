@@ -3,7 +3,10 @@
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\artifacts\performance'),
     [ValidateRange(1,10)][int]$Runs = 3,
     [ValidateRange(5,120)][int]$SampleSeconds = 15,
-    [string]$Label = 'current'
+    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Label = 'current',
+    [int]$AttachProcessId = 0,
+    [ValidateSet('overview','expanded','background')][string]$Scenario = 'overview',
+    [int]$FixtureProcessId = 0
 )
 $ErrorActionPreference = 'Stop'
 $Executable = (Resolve-Path -LiteralPath $Executable).Path
@@ -72,6 +75,57 @@ function Measure-Phase([int]$RootPid, [string]$Phase) {
 function Get-DirectoryBytes([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { return 0 }
     return (Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+}
+function Get-EndpointSummary([string]$Suffix) {
+    $snapshotPath = Join-Path $OutputDirectory ($runId + '_' + $Label + '_' + $Scenario + '_' + $Suffix + '_snapshot.json')
+    $capture = Start-Process -FilePath $Executable -ArgumentList @('--snapshot', ('"{0}"' -f $snapshotPath)) -PassThru
+    if (-not $capture.WaitForExit(30000)) { Stop-Process -Id $capture.Id -Force; throw 'Snapshot timed out.' }
+    if ($capture.ExitCode -ne 0) { throw ('Snapshot failed: exit ' + $capture.ExitCode) }
+    $snapshot = Get-Content -LiteralPath $snapshotPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if (-not $snapshot.IsComplete) { throw 'Snapshot tables incomplete.' }
+    return [pscustomobject]@{
+        RawSnapshot=$snapshotPath; CapturedAtUtc=$snapshot.CapturedAtUtc
+        EndpointCount=@($snapshot.Endpoints).Count
+        ApplicationCount=@($snapshot.Endpoints.Process.AppKey | Select-Object -Unique).Count
+        ProcessCount=@($snapshot.Endpoints.Process.InstanceId | Select-Object -Unique).Count
+        FixtureEndpointCount=@($snapshot.Endpoints | Where-Object {$_.Process.ProcessId -eq $FixtureProcessId}).Count
+    }
+}
+if ($AttachProcessId -gt 0) {
+    # Read-only sampler. The caller arranges the real UI via the approved desktop automation API.
+    $attached = Get-Process -Id $AttachProcessId -ErrorAction Stop
+    if (-not [string]::Equals($attached.Path,$Executable,[StringComparison]::OrdinalIgnoreCase)) { throw 'Attached process does not match the requested executable path.' }
+    $attachedStart = $attached.StartTime.ToUniversalTime().ToString('o')
+    $attachedHash = (Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash
+    $attachedRuns = New-Object 'System.Collections.Generic.List[object]'
+    $attachedFailure = $null
+    try {
+        for ($run=1; $run -le $Runs; $run++) {
+            $before = Get-EndpointSummary ('run' + $run + '_before')
+            Write-Host ('Attached {0}, run {1}/{2}, {3}s' -f $Scenario,$run,$Runs,$SampleSeconds)
+            $phase = Measure-Phase $AttachProcessId $Scenario
+            $after = Get-EndpointSummary ('run' + $run + '_after')
+            $attached.Refresh()
+            if ($attached.HasExited -or $attached.StartTime.ToUniversalTime().ToString('o') -ne $attachedStart) { throw 'Attached process identity changed.' }
+            $attachedRuns.Add([pscustomobject]@{Run=$run;Before=$before;After=$after;Measurement=$phase})
+        }
+    } catch { $attachedFailure=$_.Exception.Message; Write-Error -ErrorRecord $_ -ErrorAction Continue }
+    finally {
+        $os = Get-CimInstance Win32_OperatingSystem
+        $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+        $attachedReport = [pscustomobject]@{
+            SchemaVersion=2; TimestampUtc=[DateTime]::UtcNow.ToString('o'); Label=$Label; Scenario=$Scenario
+            Executable=$Executable; ExecutableSha256=$attachedHash; ProcessId=$AttachProcessId; ProcessStartTimeUtc=$attachedStart; FixtureProcessId=$FixtureProcessId
+            Environment=[pscustomobject]@{OS=$os.Caption;OSVersion=$os.Version;CPU=$cpu.Name.Trim();LogicalProcessors=$logicalProcessors;PowerShell=$PSVersionTable.PSVersion.ToString()}
+            Method='Read-only attachment to a live real UI, no programmatic UI changes. Three equal-duration samples per scenario by default. Fresh real endpoint snapshots bracket each sample; raw paths stay in ignored artifacts. CPU uses per-process-instance deltas and explicit double precision. Working set sums shared pages; private bytes are separate. Foreground status is read every sample. Short-lived descendants between samples may be missed. UI expansion timing is captured separately and includes automation observation overhead.'
+            RequestedRuns=$Runs;SampleSeconds=$SampleSeconds;Failure=$attachedFailure;Runs=$attachedRuns.ToArray()
+        }
+        $attachedPath=Join-Path $OutputDirectory ($runId + '_' + $Label + '_' + $Scenario + '_attached.json')
+        $attachedReport | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $attachedPath -Encoding UTF8
+        Write-Host ('Results: ' + $attachedPath)
+    }
+    if ($attachedFailure) { exit 1 }
+    exit 0
 }
 $measurements = New-Object 'System.Collections.Generic.List[object]'
 $app = $null

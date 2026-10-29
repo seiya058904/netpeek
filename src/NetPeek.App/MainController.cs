@@ -24,7 +24,7 @@ namespace NetPeek
     {
         private readonly Window window;
         private readonly Stopwatch startup;
-        private readonly string metricsPath;
+        private readonly RunEvidence evidence;
         private readonly ConnectionStore store = new ConnectionStore();
         private readonly CollectionLoop collection;
         private readonly DispatcherTimer renderTimer;
@@ -33,8 +33,13 @@ namespace NetPeek
         private readonly Forms.NotifyIcon tray;
         private readonly Forms.ToolStripMenuItem trayPause;
         private readonly System.Drawing.Icon trayIcon;
-        private readonly HashSet<string> iconAttempts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, ImageSource> iconCache = new Dictionary<string, ImageSource>(StringComparer.OrdinalIgnoreCase);
+        private readonly IconCache<ImageSource> iconCache = new IconCache<ImageSource>(256, TimeSpan.FromSeconds(5), () => DateTime.UtcNow,
+            path => Task.Run(() => ExecutableIcons.Load(path)));
+        private static readonly Brush HealthyBrush = Brush("#397A58"), AttentionBrush = Brush("#9A712D"), SearchFocusBrush = Brush("#25664F"), SearchIdleBrush = Brush("#D5E1D8");
+        private static readonly Geometry SearchGlyph = Glyph("M 19,19 L 27,27 M 22,12 A 10,10 0 1 1 2,12 A 10,10 0 1 1 22,12");
+        private static readonly Geometry EmptyGlyph = Glyph("M 14,15 A 6,6 0 1 1 2,15 A 6,6 0 1 1 14,15 M 30,15 A 6,6 0 1 1 18,15 A 6,6 0 1 1 30,15");
+        private static readonly Geometry FailureGlyph = Glyph("M 16,3 L 16,18 M 16,24 L 16,26");
+        private bool faultScheduled;
         private bool iconsLoading;
         private bool disposed, paused, hasSnapshot;
         private long version;
@@ -50,14 +55,15 @@ namespace NetPeek
         private readonly bool elevated;
         private string notice;
         private DateTime noticeUntil;
-        public MainController(Window target, Stopwatch clock, string reportPath, bool smokeTest, int measureSeconds)
+        public MainController(Window target, Stopwatch clock, RunEvidence runEvidence, bool smokeTest, int measureSeconds)
         {
-            window = target; startup = clock; metricsPath = reportPath; smoke = smokeTest; benchmarkSeconds = measureSeconds;
+            window = target; startup = clock; evidence = runEvidence; smoke = smokeTest; benchmarkSeconds = measureSeconds;
+            WindowLayout.Attach(window);
             elevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
             Element<ListBox>("AppList").ItemsSource = visibleApps;
             Element<TextBox>("SearchBox").TextChanged += SearchChanged;
-            Element<TextBox>("SearchBox").GotKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = Brush("#25664F"); };
-            Element<TextBox>("SearchBox").LostKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = Brush("#D5E1D8"); };
+            Element<TextBox>("SearchBox").GotKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = SearchFocusBrush; };
+            Element<TextBox>("SearchBox").LostKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = SearchIdleBrush; };
             Element<ComboBox>("FilterBox").SelectionChanged += delegate { filter = Element<ComboBox>("FilterBox").SelectedIndex; RefreshFilter(); };
             window.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(ButtonClicked), true);
             window.PreviewKeyDown += KeyDown;
@@ -78,7 +84,7 @@ namespace NetPeek
                 var image = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(trayIcon.Handle, Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
                 image.Freeze(); window.Icon = image;
             }
-            collection = new CollectionLoop();
+            collection = new CollectionLoop(smoke && evidence != null ? evidence.TestFault : null);
             renderTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
             renderTimer.Tick += delegate {
                 if (smoke && startup.Elapsed.TotalSeconds >= 5) { WriteMetrics(); window.Close(); return; }
@@ -91,9 +97,12 @@ namespace NetPeek
             };
             renderTimer.Start();
             SystemEvents.PowerModeChanged += PowerChanged;
+            UpdateResult();
         }
         private T Element<T>(string name) where T : FrameworkElement { return (T)window.FindName(name); }
         private static Brush Brush(string color) { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)); b.Freeze(); return b; }
+        private static Geometry Glyph(string data) { var g = Geometry.Parse(data); g.Freeze(); return g; }
+        private void SetText(string name, string value) { var element = Element<TextBlock>(name); if (element.Text != value) element.Text = value; }
         private void OnUI(Action action) { if (!disposed && !window.Dispatcher.HasShutdownStarted) window.Dispatcher.BeginInvoke(action); }
         public void ShowWindow() { if (disposed) return; window.Show(); if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal; window.Activate(); RenderLatest(); }
         private void SearchChanged(object sender, TextChangedEventArgs e)
@@ -124,11 +133,24 @@ namespace NetPeek
         private void UpdateResult()
         {
             int count = visibleApps.Count;
-            Element<TextBlock>("ResultText").Text = count + " 个应用" + (search.Length > 0 || filter != 0 ? " · 已筛选" : " · 列表顺序保持稳定");
-            bool empty = hasSnapshot && count == 0;
-            Element<StackPanel>("EmptyPanel").Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
-            Element<TextBlock>("EmptyTitle").Text = search.Length > 0 || filter != 0 ? "没有找到匹配的应用" : "这里暂时很安静";
-            Element<TextBlock>("EmptyDescription").Text = search.Length > 0 || filter != 0 ? "换个关键词或选择“全部应用”试试。" : "发现网络端点后，应用会自动出现在这里。";
+            bool filtered = search.Length > 0 || filter != 0;
+            SetText("ResultText", hasSnapshot ? count + " 个应用" + (filtered ? " · 已筛选" : " · 列表顺序保持稳定") : "正在发现应用…");
+            bool showEmpty = !hasSnapshot || count == 0;
+            Element<StackPanel>("EmptyPanel").Visibility = showEmpty ? Visibility.Visible : Visibility.Collapsed;
+            string title, description; Geometry glyph;
+            if (!hasSnapshot && currentWarning != null) {
+                title = "暂时无法读取完整连接"; description = "请稍后重试。受保护进程的路径可能不可读。"; glyph = FailureGlyph;
+            } else if (!hasSnapshot) {
+                title = "正在读取本机连接…"; description = "正在获取 Windows 提供的应用与端点信息。"; glyph = EmptyGlyph;
+            } else if (filtered) {
+                title = "没有找到匹配的应用"; description = "换个关键词，或清除筛选查看全部应用。"; glyph = SearchGlyph;
+            } else {
+                title = "这里暂时很安静"; description = "发现网络端点后，应用会自动出现在这里。"; glyph = EmptyGlyph;
+            }
+            SetText("EmptyTitle", title); SetText("EmptyDescription", description);
+            Element<System.Windows.Shapes.Path>("EmptyGlyph").Data = glyph;
+            Element<Button>("ResetFiltersButton").Visibility = hasSnapshot && count == 0 && filtered ? Visibility.Visible : Visibility.Collapsed;
+            Element<Button>("ClearSearchButton").Visibility = filtered ? Visibility.Visible : Visibility.Collapsed;
         }
         private void RenderLatest()
         {
@@ -138,19 +160,22 @@ namespace NetPeek
                 version = next;
                 if (!snapshot.IsComplete) {
                     currentWarning = "采集不完整。" + String.Join("；", snapshot.Warnings ?? new List<string>()) + (hasSnapshot ? " 正在保留上次完整画面，自动重试中。" : " 自动重试中；暂不能确认当前连接。");
-                    if (!hasSnapshot) { Element<TextBlock>("EmptyTitle").Text = "暂时无法读取完整连接"; Element<TextBlock>("EmptyDescription").Text = "请稍后重试。受保护进程的路径可能不可读。"; Element<StackPanel>("EmptyPanel").Visibility = Visibility.Visible; }
+                    if (!hasSnapshot) UpdateResult();
                 } else {
                     currentWarning = snapshot.Warnings != null && snapshot.Warnings.Count > 0 ? String.Join("；", snapshot.Warnings) : null;
                     // New apps are sorted only at their first appearance. Existing positions never move.
                     snapshot.Endpoints = snapshot.Endpoints.OrderBy(e => e.Process.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(e => e.Process.AppKey, StringComparer.OrdinalIgnoreCase).ToList();
-                    store.Apply(snapshot, observations); hasSnapshot = true; lastSuccess = snapshot.CapturedAtUtc; samplesApplied++;
+                    bool changed = store.Apply(snapshot, observations); bool first = !hasSnapshot; hasSnapshot = true; lastSuccess = snapshot.CapturedAtUtc; samplesApplied++;
                     if (firstSnapshotMilliseconds <= 0) { firstSnapshotMilliseconds = startup.Elapsed.TotalMilliseconds; WriteMetrics(); }
-                    Element<TextBlock>("TcpCount").Text = snapshot.Endpoints.Count(e => e.Protocol == "TCP" && e.State == "ESTABLISHED").ToString();
-                    Element<TextBlock>("ListenCount").Text = snapshot.Endpoints.Count(e => e.Protocol == "TCP" && e.State == "LISTEN").ToString();
-                    Element<TextBlock>("UdpCount").Text = snapshot.Endpoints.Count(e => e.Protocol == "UDP").ToString();
-                    RefreshFilter(); LoadIcons();
-                    if (truncated || store.HistoryTruncated) currentWarning = (currentWarning ?? "") + " 历史记录已达 12,000 条上限，最早记录已滚动移出。";
+                    SetText("TcpCount", snapshot.Endpoints.Count(e => e.Protocol == "TCP" && e.State == "ESTABLISHED").ToString());
+                    SetText("ListenCount", snapshot.Endpoints.Count(e => e.Protocol == "TCP" && e.State == "LISTEN").ToString());
+                    SetText("UdpCount", snapshot.Endpoints.Count(e => e.Protocol == "UDP").ToString());
+                    if (changed || first) RefreshFilter();
+                    LoadIcons();
                 }
+                if (truncated || store.HistoryTruncated) currentWarning = (currentWarning ?? "") + (snapshot.IsComplete
+                    ? " 历史记录已达 12,000 条上限，最早记录已滚动移出。"
+                    : " 上次完整采样的历史曾达到 12,000 条上限，部分最早记录已移出。");
             }
             UpdateStatus();
         }
@@ -159,34 +184,31 @@ namespace NetPeek
             if (disposed) return;
             bool stale = hasSnapshot && (DateTime.UtcNow - lastSuccess).TotalSeconds > 6;
             string status = paused ? "界面已暂停" : !String.IsNullOrEmpty(currentWarning) || stale ? "采集需留意" : hasSnapshot ? "正在采集" : "正在读取连接";
-            Element<TextBlock>("StatusText").Text = status;
-            Element<System.Windows.Shapes.Ellipse>("StatusDot").Fill = Brush(paused || stale || !String.IsNullOrEmpty(currentWarning) ? "#9A712D" : "#397A58");
+            SetText("StatusText", status);
+            Element<System.Windows.Shapes.Ellipse>("StatusDot").Fill = paused || stale || !String.IsNullOrEmpty(currentWarning) ? AttentionBrush : HealthyBrush;
             string warning = currentWarning;
             if (paused) warning = "画面暂停于 " + (hasSnapshot ? lastSuccess.ToLocalTime().ToString("HH:mm:ss") : "首次采样前") + "。后台继续尝试采集；继续后显示最新状态。";
             else if (stale && String.IsNullOrEmpty(warning)) warning = "当前画面已超过 6 秒未更新，暂不能代表实时连接。正在重新读取…";
             Element<Border>("WarningPanel").Visibility = String.IsNullOrEmpty(warning) ? Visibility.Collapsed : Visibility.Visible;
-            Element<TextBlock>("WarningText").Text = warning ?? "";
+            SetText("WarningText", warning ?? "");
             Element<Button>("RetryButton").Visibility = paused ? Visibility.Collapsed : Visibility.Visible;
-            Element<TextBlock>("LastUpdated").Text = hasSnapshot ? (paused ? "画面时间 " : "更新于 ") + lastSuccess.ToLocalTime().ToString("HH:mm:ss") : "等待首次采样";
-            Element<TextBlock>("Footnote").Text = notice != null && DateTime.UtcNow < noticeUntil ? notice : "IPv4 + IPv6 · TCP + UDP · " + (elevated ? "当前以管理员权限运行" : "普通用户权限");
+            SetText("LastUpdated", hasSnapshot ? (paused ? "画面时间 " : "更新于 ") + lastSuccess.ToLocalTime().ToString("HH:mm:ss") : "等待首次采样");
+            SetText("Footnote", notice != null && DateTime.UtcNow < noticeUntil ? notice : "IPv4 + IPv6 · TCP + UDP · " + (elevated ? "当前以管理员权限运行" : "普通用户权限"));
         }
         private async void LoadIcons()
         {
             if (iconsLoading || disposed) return;
-            var pending = store.Applications.Where(a => !String.IsNullOrEmpty(a.Path) && !iconAttempts.Contains(a.Path)).Take(16).ToList();
+            var pending = store.Applications.Where(a => a.Icon == null && !String.IsNullOrEmpty(a.Path) && iconCache.CanRequest(a.Path)).Take(16).ToList();
             if (pending.Count == 0) return;
             iconsLoading = true;
             try {
                 foreach (var app in pending) {
                     if (disposed) break;
-                    iconAttempts.Add(app.Path);
-                    ImageSource image;
-                    if (!iconCache.TryGetValue(app.Path, out image)) { string path = app.Path; image = await Task.Run(() => ExecutableIcons.Load(path)); if (image != null) iconCache[path] = image; }
-                    if (!disposed) app.Icon = image;
+                    string path = app.Path;
+                    ImageSource image = await iconCache.GetAsync(path);
+                    // A load may finish after a row expires, is regrouped or the window exits.
+                    if (!disposed && image != null && app.Path == path && store.Applications.Contains(app)) app.Icon = image;
                 }
-                // The view retains its own frozen icon. Bound caches so transient programs cannot grow them indefinitely.
-                if (iconCache.Count > 256) iconCache.Clear();
-                if (iconAttempts.Count > 512) { iconAttempts.Clear(); foreach (var a in store.Applications.Where(a => a.Icon != null).Take(512)) iconAttempts.Add(a.Path); }
             } finally { iconsLoading = false; }
         }
         private void TogglePause()
@@ -201,12 +223,15 @@ namespace NetPeek
             // ListBox/DataGrid can retarget routed Source to their item container.
             var button = e.OriginalSource as Button ?? e.Source as Button; if (button == null) return;
             switch (button.Name) {
+                case "ClearSearchButton": case "ResetFiltersButton":
+                    Element<TextBox>("SearchBox").Clear(); searchTimer.Stop(); search = "";
+                    filter = 0; Element<ComboBox>("FilterBox").SelectedIndex = 0; RefreshFilter(); Element<TextBox>("SearchBox").Focus(); break;
                 case "PauseButton": TogglePause(); break;
                 case "RetryButton": collection.Request(); Notice("已请求重新采集"); break;
-                case "InfoButton": Element<Border>("InfoPanel").Visibility = Element<Border>("InfoPanel").Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; break;
+                case "InfoButton": case "CompactInfoButton": Element<Border>("InfoPanel").Visibility = Element<Border>("InfoPanel").Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; break;
                 case "CloseInfoButton": Element<Border>("InfoPanel").Visibility = Visibility.Collapsed; break;
-                case "TrayButton": window.Hide(); break;
-                case "ExitButton": window.Close(); break;
+                case "TrayButton": case "CompactTrayButton": window.Hide(); break;
+                case "ExitButton": case "CompactExitButton": window.Close(); break;
             }
             if ((string)button.Tag == "CopyPath") { var app = button.DataContext as ApplicationView; if (app != null && !String.IsNullOrEmpty(app.Path)) Copy(app.Path); else Notice("此应用的路径未知，无法复制"); }
             if ((string)button.Tag == "CopyEndpoint") { var endpoint = button.DataContext as EndpointView; if (endpoint != null) Copy(endpoint.CopyText); }
@@ -245,8 +270,18 @@ namespace NetPeek
         private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Resume) OnUI(delegate { collection.Request(); UpdateStatus(); }); }
         private void WriteMetrics()
         {
-            if (metricsPath == null) return;
-            JsonFile.Write(metricsPath, new { StartupMilliseconds = Math.Round(startupMilliseconds, 2), FirstSnapshotMilliseconds = Math.Round(firstSnapshotMilliseconds, 2), Phase = measurementPhase, ProcessId = Process.GetCurrentProcess().Id, IsElevated = elevated, SamplesApplied = samplesApplied, ApplicationCount = store.Applications.Count, EndpointCount = store.Applications.Sum(a => a.CurrentCount), Success = hasSnapshot, CapturedAtUtc = DateTime.UtcNow.ToString("o") });
+            if (evidence == null) return;
+            evidence.StartupMilliseconds = Math.Round(startupMilliseconds, 2);
+            evidence.FirstSnapshotMilliseconds = Math.Round(firstSnapshotMilliseconds, 2);
+            evidence.Phase = measurementPhase; evidence.IsElevated = elevated;
+            evidence.SamplesApplied = samplesApplied; evidence.HasValidSnapshot = hasSnapshot && samplesApplied > 0;
+            evidence.LastSuccessfulSnapshotUtc = hasSnapshot ? lastSuccess.ToString("o") : null;
+            evidence.ApplicationCount = store.Applications.Count; evidence.EndpointCount = store.Applications.Sum(a => a.CurrentCount);
+            evidence.Write();
+            if (smoke && evidence.TestFault == "ui-after-report" && evidence.HasValidSnapshot && !faultScheduled) {
+                faultScheduled = true; evidence.MarkFaultAfterReport();
+                window.Dispatcher.BeginInvoke(new Action(delegate { throw new InvalidOperationException("显式 smoke 测试注入：有效报告写入后的 UI 异常"); }));
+            }
         }
         public void Dispose()
         {
@@ -254,6 +289,7 @@ namespace NetPeek
             SystemEvents.PowerModeChanged -= PowerChanged;
             if (renderTimer != null) renderTimer.Stop(); if (searchTimer != null) searchTimer.Stop();
             if (collection != null) collection.Dispose();
+            iconCache.Dispose();
             if (tray != null) { tray.Visible = false; if (tray.ContextMenuStrip != null) tray.ContextMenuStrip.Dispose(); tray.Dispose(); }
             if (trayIcon != null) trayIcon.Dispose();
         }

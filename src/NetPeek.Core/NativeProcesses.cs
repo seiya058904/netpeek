@@ -33,6 +33,38 @@ namespace NetPeek.Core
             return result;
         }
         public ProcessObservation Read(int pid) { return ReadCore(pid, true); }
+        internal static string NormalizeImagePath(string path)
+        {
+            if (String.IsNullOrWhiteSpace(path)) throw new ArgumentException("进程路径为空");
+            // Normalize extended UNC before removing the generic extended-path prefix.
+            // This is lexical only: never open the file or contact its server/share.
+            path = path.Replace('/', '\\');
+            if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) path = @"\\" + path.Substring(8);
+            else if (path.StartsWith(@"\\?\", StringComparison.Ordinal)) path = path.Substring(4);
+            bool drive = path.Length >= 3 && (path[0] >= 'A' && path[0] <= 'Z' || path[0] >= 'a' && path[0] <= 'z') && path[1] == ':' && path[2] == '\\';
+            bool unc = path.StartsWith(@"\\", StringComparison.Ordinal) && !path.StartsWith(@"\\.\", StringComparison.Ordinal) && !path.StartsWith(@"\\?\", StringComparison.Ordinal);
+            if (!drive && !unc) throw new ArgumentException("进程路径不是完整绝对路径");
+            // Avoid GetFullPath's legacy short-name expansion on network paths.
+            // Normalize only path syntax, never resolve files, links or 8.3 aliases.
+            string[] parts = path.Substring(drive ? 3 : 2).Split('\\');
+            List<string> normalized = new List<string>();
+            int rootParts = drive ? 0 : 2;
+            foreach (string part in parts) {
+                if (part.Length == 0 || part == ".") {
+                    if (normalized.Count < rootParts) throw new ArgumentException("UNC 服务器或共享名无效");
+                    continue;
+                }
+                if (part == "..") {
+                    if (normalized.Count < rootParts) throw new ArgumentException("UNC 服务器或共享名无效");
+                    if (normalized.Count > rootParts) normalized.RemoveAt(normalized.Count - 1);
+                    continue;
+                }
+                if (part.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0) throw new ArgumentException("进程路径包含无效字符");
+                normalized.Add(part);
+            }
+            if (normalized.Count <= rootParts) throw new ArgumentException("进程路径缺少可执行文件名");
+            return (drive ? path.Substring(0, 3) : @"\\") + String.Join(@"\", normalized);
+        }
         private static ProcessObservation ReadCore(int pid, bool includePath)
         {
             ProcessObservation result = new ProcessObservation();

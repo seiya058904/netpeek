@@ -76,11 +76,22 @@ internal static class CoreTests
         Check(next.InstanceId != a.InstanceId && next.Path.EndsWith(@"Other\app.exe"), "next capture resolves reused PID without stale metadata");
         ProcessIdentity unknown = NetworkCollector.BuildIdentity(8, 0, new ProcessObservation { Error = "denied" }, "1");
         ProcessIdentity unknownOther = NetworkCollector.BuildIdentity(9, 0, new ProcessObservation { Error = "denied" }, "1");
-        Check(unknown.Path == null && unknown.AppKey != unknownOther.AppKey && unknown.AccessNote == "denied", "unknown processes never merge by display name");
+        Check(unknown.Path == null && unknown.AppKey != unknownOther.AppKey && unknown.AccessNote.Contains("denied") && unknown.AccessNote.Contains("身份不可核验"), "unknown processes never merge by display name and remain explicitly unverified");
         ProcessIdentity newProcess = NetworkCollector.BuildIdentity(8, 0, new ProcessObservation { StartTimeUtcTicks = 100, Path = @"C:\New\app.exe" }, "2");
         Check(newProcess.Path == null, "process first seen after table capture not falsely attributed");
         ProcessIdentity inaccessible = NetworkCollector.BuildIdentity(8, 100, new ProcessObservation { StartTimeUtcTicks = 100, Error = "path denied" }, "3");
         Check(inaccessible.InstanceId == "8:100" && inaccessible.Path == null, "verified instance with inaccessible path stays isolated");
+        ProcessIdentity unc = NetworkCollector.BuildIdentity(11, 200, new ProcessObservation { StartTimeUtcTicks = 200, Path = @"\\?\UNC\server\share\Folder\app.exe" }, "1");
+        ProcessIdentity uncPlain = NetworkCollector.BuildIdentity(12, 300, new ProcessObservation { StartTimeUtcTicks = 300, Path = @"\\SERVER\SHARE\Folder\app.exe" }, "1");
+        Check(unc.Path == @"\\server\share\Folder\app.exe" && unc.AppKey == uncPlain.AppKey && unc.Name == "app", "extended UNC normalizes lexically to the same reliable path group");
+        Check(NativeProcesses.NormalizeImagePath(@"\\?\C:\Folder\app.exe") == @"C:\Folder\app.exe", "extended local path normalizes without filesystem access");
+        Check(NativeProcesses.NormalizeImagePath(@"\\?\UNC\server\share\Folder\..\App~1\app.exe") == @"\\server\share\App~1\app.exe", "UNC dot segments normalize without expanding remote 8.3 aliases");
+        foreach (string bad in new[] { @"C:app.exe", @"\Folder\app.exe", @"relative\app.exe", @"\\.\pipe\something", @"C:\" }) {
+            ProcessIdentity rejected = NetworkCollector.BuildIdentity(11, 200, new ProcessObservation { StartTimeUtcTicks = 200, Path = bad }, "1");
+            Check(rejected.Path == null && rejected.AppKey == "instance:11:200", "non-executable or ambiguous path stays isolated: " + bad);
+        }
+        ProcessIdentity unknownAgain = NetworkCollector.BuildIdentity(8, 0, new ProcessObservation { Error = "denied" }, "2");
+        Check(unknown.InstanceId != unknownAgain.InstanceId && unknown.StartTimeUtcTicks == 0 && unknownAgain.Path == null, "unknown PID keeps a distinct untrusted epoch on every sample");
     }
     private sealed class FakeTables : ITableSource
     {

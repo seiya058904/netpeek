@@ -1,0 +1,177 @@
+{
+  "SchemaVersion": 3,
+  "Status": "Full real-WPF GUI harness run was completed for the pre-minwidth F2 artifact, but was not run for the final 7537 executable.",
+  "FinalExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "FinalFullHarnessGuiRunPerformed": false,
+  "StopReason": "The user said the desktop was in active use and asked to preserve the measured results. No new visible verification runs were started after that instruction.",
+  "PreMinwidthEvidence": {
+    "SchemaVersion": 2,
+    "ExecutableSha256": "F2D194843F15451CD01FB518268DAC2711526BF82D2C4A2C25749A5D54311720",
+    "HarnessSha256": "CEC228C9FB73EC85882635BCE991B1C4B61F8F1BE0D3294FCD4572A78CEF4620",
+    "SourceReportFileName": "20261029_123556_762_candidate_harness.json",
+    "SourceReportSha256": "C793DBAD7B260C83D7C56CFCDA0199CCF0813382B250AC022B76B4F68BA0DF04",
+    "Success": true,
+    "ProductExitCode": 0,
+    "OwnWindowDisplay": {
+      "TransformToDeviceM11": 1.75,
+      "TransformToDeviceM22": 1.75,
+      "GetDpiForWindow": 168,
+      "LogicalWindowWidth": 720,
+      "LogicalWindowHeight": 480,
+      "LogicalContentWidth": 706.2857142857143,
+      "LogicalContentHeight": 443.42857142857144,
+      "ImageMethod": "Actual WPF content root rendered at 96 dpi in logical coordinates; not a physical desktop screenshot."
+    },
+    "GuiChecks": [
+      {
+        "Passed": true,
+        "Name": "Both auxiliary panels visible",
+        "Detail": "Actual PauseButton and InfoButton routed events on the real 720 by 480 logical window."
+      },
+      {
+        "Passed": true,
+        "Name": "Minimum-window connection viewport",
+        "Detail": "Actual AppList layout height is at least 70 logical pixels."
+      },
+      {
+        "Passed": true,
+        "Name": "Copy column horizontally reachable",
+        "Detail": "Actual realized endpoint copy button bounds lie within the DataGrid width; this is a layout check, not a mouse-click test."
+      },
+      {
+        "Passed": true,
+        "Name": "Minimum-window measured layout",
+        "Detail": "Actual own-window WPF geometry at the current desktop DPI.",
+        "ListViewportHeight": 146.28571428571428,
+        "GridWidth": 494.85714285714283,
+        "GridHeight": 269.7142857142857,
+        "GridFrozenColumns": 3,
+        "CopyButtonLeft": 253.14285714285714,
+        "CopyButtonRight": 298.85714285714283,
+        "RealizedEndpointRows": 7
+      },
+      {
+        "Passed": true,
+        "Name": "Search empty state",
+        "Detail": "Real TextChanged and debounce path."
+      },
+      {
+        "Passed": true,
+        "Name": "Escape restores list",
+        "Detail": "Own-window routed PreviewKeyDown; not external keyboard injection."
+      },
+      {
+        "Passed": null,
+        "Name": "Search keyboard focus observation",
+        "Detail": "OS foreground focus is not guaranteed in this session; this observation is not a Ctrl+F input test.",
+        "FocusRequestAccepted": true,
+        "KeyboardFocusObserved": true
+      },
+      {
+        "Passed": true,
+        "Name": "Reset filters restores all",
+        "Detail": "Actual reset button when available; older version has no reset control."
+      },
+      {
+        "Passed": true,
+        "Name": "Real endpoint rows materialized",
+        "Detail": "Real WPF binding/expansion path."
+      },
+      {
+        "Passed": true,
+        "Name": "Copy endpoint clipboard equality",
+        "Detail": "Actual routed CopyEndpoint click; compared only the owned loopback endpoint value."
+      },
+      {
+        "Passed": true,
+        "Name": "Pause preserves timestamp",
+        "Detail": "Waited 2.5 seconds with real collector still active."
+      },
+      {
+        "Passed": true,
+        "Name": "Resume updates timestamp",
+        "Detail": "Real subsequent sample applied."
+      },
+      {
+        "Passed": true,
+        "Name": "Tray hide",
+        "Detail": "Actual routed tray button click; same host process remains alive."
+      },
+      {
+        "Passed": true,
+        "Name": "Single-instance activation exit",
+        "Detail": "Second real EXE sees product mutex and returns zero."
+      },
+      {
+        "Passed": true,
+        "Name": "Single-instance restores same window",
+        "Detail": "Product activation event calls real ShowWindow path."
+      },
+      {
+        "Passed": true,
+        "Name": "Unique real-icon fixture appears",
+        "Detail": "Dedicated executable path; normal Windows executable icon loading."
+      },
+      {
+        "Passed": true,
+        "Name": "Icon fixture exits",
+        "Detail": "Graceful owned fixture shutdown."
+      },
+      {
+        "Passed": true,
+        "Name": "WindowRestoredForRetentionCheck",
+        "Detail": "A minimized or stale UI intentionally skips painting. Restore the actual own window once, then wait at most ten seconds for a complete post-retention sample before asserting deletion.",
+        "PriorWindowState": "Minimized",
+        "PriorUiTimestampUtc": "2026-10-29T12:36:35.741Z",
+        "FixtureLastSeenUtc": "2026-10-29T12:36:18.979Z"
+      },
+      {
+        "Passed": true,
+        "Name": "App disappears after history retention",
+        "Detail": "Waited 65 seconds after dedicated app exited; no other process uses its path."
+      },
+      {
+        "Passed": true,
+        "Name": "Fixture restarts with new PID",
+        "Detail": "Same executable path, new actual process."
+      },
+      {
+        "Passed": true,
+        "Name": "Reappeared app gets icon on new view",
+        "Detail": "New ApplicationView after 65-second removal has a real non-null icon."
+      },
+      {
+        "Passed": true,
+        "Name": "Eight-process actual endpoint group",
+        "Detail": "Eight real same-path child processes, each with one loopback listener."
+      },
+      {
+        "Passed": true,
+        "Name": "Multi-process details render",
+        "Detail": "Real small multi-process fixture; no 257-process cache-pressure simulation."
+      }
+    ],
+    "EarlierRetentionCheck": {
+      "SourceReportFileName": "20261029_122800_175_candidate_harness.json",
+      "SourceReportSha256": "96AAD073A8BEFEE67370C9B0E572038A80BF60611390B44DDA415C4885BEFD78",
+      "OriginalCheckOutcome": "Failed before own-window restoration was added to the test.",
+      "Explanation": "The actual window was minimized, so the product intentionally did not render newer samples. The old UI timestamp had not crossed the fixture last-seen timestamp plus sixty seconds. A fresh complete system snapshot already showed zero fixture endpoints. The corrected test restores its own window once and waits at most ten seconds for a complete post-retention UI sample before asserting deletion.",
+      "WindowState": "Minimized",
+      "LatestUiCurrentEndpointTimestampUtc": "2026-10-29T12:28:44.22Z",
+      "FixtureLastSeenUtc": "2026-10-29T12:28:21.342Z",
+      "ActualSnapshotComplete": true,
+      "ActualFixtureEndpointCount": 0,
+      "OwnedFixtureHasExited": true
+    },
+    "EarlierUninstrumentedRetentionFailure": "One previous fixed sixty-five-second check also failed without enough state diagnostics; its raw report remains preserved. It is not claimed as a separately diagnosed production defect.",
+    "ScreenshotMethod": "Direct rendering of the actual WPF content root at 96 dpi in logical coordinates. The transparent root temporarily uses the same actual Window.Background brush while rendered, then is restored. These are content snapshots, not physical desktop screenshots.",
+    "Limitations": "Actual control events, bindings, clipboard contents, process entry point, collector and executable icons are exercised. External mouse/keyboard input, Ctrl+F physical keyboard behavior, DPI transitions and multiple monitors are not verified. Search keyboard focus is an observation, not a passing input test."
+  },
+  "AddedHarnessChecksNotExecuted": [
+    "Actual selected endpoint object retained across three newer real UI snapshots",
+    "Actual nonzero DataGrid vertical scroll offset retained across three newer real UI snapshots",
+    "Keyboard focus retention only when both own-window foreground and WPF keyboard focus are actually observed"
+  ],
+  "NewHarnessSourceCompileOnlyPassed": true,
+  "NewHarnessSourceSha256": "0092A86C57C016CE814D996F2470BF77C353D5E37C09CF58B668730655F0A328"
+}

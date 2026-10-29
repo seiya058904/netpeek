@@ -95,7 +95,7 @@ namespace NetPeek.Core
             identity.Name = "未知进程 (PID " + pid + ")";
             if (!verified)
             {
-                identity.AccessNote = after != null && !String.IsNullOrEmpty(after.Error) ? after.Error : "进程已退出、刚启动或身份发生变化，无法可靠归属";
+                identity.AccessNote = (after != null && !String.IsNullOrEmpty(after.Error) ? after.Error : "进程已退出、刚启动或身份发生变化") + "；身份不可核验，仅代表本次快照";
                 return identity;
             }
             if (String.IsNullOrWhiteSpace(after.Path))
@@ -105,12 +105,7 @@ namespace NetPeek.Core
             }
             try
             {
-                string path = after.Path;
-                if (path.StartsWith(@"\\?\", StringComparison.Ordinal)) path = path.Substring(4);
-                // QueryFullProcessImageName returns an absolute Win32 path. Do not resolve
-                // untrusted relative paths into the application's working directory.
-                if (!System.IO.Path.IsPathRooted(path)) throw new ArgumentException("进程路径不是绝对路径");
-                identity.Path = System.IO.Path.GetFullPath(path);
+                identity.Path = NativeProcesses.NormalizeImagePath(after.Path);
                 identity.AppKey = "path:" + identity.Path.ToUpperInvariant();
                 identity.Name = System.IO.Path.GetFileNameWithoutExtension(identity.Path);
             }

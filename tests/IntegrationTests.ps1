@@ -23,11 +23,13 @@ function Assert-Check([bool]$Condition, [string]$Name, [string]$Detail) {
 }
 function Get-Snapshot([string]$Label) {
     $path = Join-Path $OutputDirectory ($runId + '_' + $Label + '.json')
-    $p = Start-Process -FilePath $Executable -ArgumentList @('--snapshot', ('"{0}"' -f $path)) -PassThru
+    $started = [DateTime]::UtcNow
+    $p = Start-Process -FilePath $Executable -ArgumentList @('--snapshot', ('"{0}"' -f $path)) -WindowStyle Hidden -PassThru
     if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'Owned snapshot process exceeded 30 seconds.' }
     Assert-Check ($p.ExitCode -eq 0) ($Label + ' complete exit') ('ExitCode=' + $p.ExitCode)
     $result = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-Check ([bool]$result.IsComplete) ($Label + ' all tables') (($result.Warnings | Out-String).Trim())
+    Assert-Check ($result.ProcessId -eq $p.Id -and [DateTime]::Parse($result.StartedAtUtc).ToUniversalTime() -ge $started.AddSeconds(-1) -and [DateTime]::Parse($result.ReportWrittenAtUtc).ToUniversalTime() -le [DateTime]::UtcNow) ($Label + ' report identity/time') ('PID=' + $p.Id)
+    Assert-Check ($result.Success -is [bool] -and $result.Success -and $result.IsComplete -is [bool] -and $result.IsComplete) ($Label + ' all tables') (($result.Warnings | Out-String).Trim())
     return $result
 }
 function Find-Endpoint($Snapshot, [string]$Protocol, [string]$Address, [int]$Port, [int]$OwnerPid) {
@@ -96,6 +98,54 @@ function Test-PassiveSnapshot {
     }
     $invalidUdp = @($passive.Endpoints | Where-Object { $_.Protocol -eq 'UDP' -and ($null -ne $_.RemoteAddress -or $_.RemotePort -ne 0 -or $_.State -ne 'BOUND') })
     Assert-Check ($invalidUdp.Count -eq 0) 'Passive UDP semantics' 'Local bindings have no invented remote or Internet-active state.'
+}
+
+# These are explicit test-only GUI invocations. Fault cases cannot be selected by a normal launch.
+function Test-GuiSmoke([string]$Label, [string]$Fault, [int]$ExpectedExit, [bool]$ExpectedSnapshot) {
+    $smokePath = Join-Path $OutputDirectory ($runId + '_' + $Label + '.json')
+    $invocation = [Guid]::NewGuid().ToString('D')
+    # A stale prior success must never satisfy this invocation's checks.
+    @{ RunId='stale-sentinel'; ProcessId=-1; Success=$true; Completed=$true; SamplesApplied=99 } | ConvertTo-Json | Set-Content -LiteralPath $smokePath -Encoding UTF8
+    $arguments = @('--smoke-test', ('"{0}"' -f $smokePath), '--run-id', $invocation)
+    if ($Fault) { $arguments += @('--test-fault', $Fault) }
+    $started = [DateTime]::UtcNow
+    $gui = Start-Process -FilePath $Executable -ArgumentList $arguments -WindowStyle Hidden -PassThru
+    $descendants = New-Object 'System.Collections.Generic.HashSet[int]'
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    while (-not $gui.HasExited -and $watch.Elapsed.TotalSeconds -lt 25) {
+        $processes = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId)
+        do {
+            $added = $false
+            foreach ($process in $processes) {
+                if (($process.ParentProcessId -eq $gui.Id -or $descendants.Contains([int]$process.ParentProcessId)) -and $descendants.Add([int]$process.ProcessId)) { $added = $true }
+            }
+        } while ($added)
+        Start-Sleep -Milliseconds 200
+        $gui.Refresh()
+    }
+    if (-not $gui.HasExited) { Stop-Process -Id $gui.Id -Force -ErrorAction SilentlyContinue; throw ($Label + ' did not exit within 25 seconds.') }
+    $gui.WaitForExit()
+    $finished = [DateTime]::UtcNow
+    $survivors = @($descendants | Where-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue })
+    Assert-Check ($survivors.Count -eq 0) ($Label + ' exit cleanup') ('Observed child processes=' + $descendants.Count + '; surviving=' + $survivors.Count)
+    Assert-Check ($gui.ExitCode -eq $ExpectedExit) ($Label + ' exit code') ('Expected=' + $ExpectedExit + '; actual=' + $gui.ExitCode)
+    Assert-Check (Test-Path -LiteralPath $smokePath) ($Label + ' evidence present') $smokePath
+    $evidence = Get-Content -LiteralPath $smokePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-Check ($evidence.RunId -eq $invocation -and $evidence.ProcessId -eq $gui.Id) ($Label + ' invocation identity') ('RunId=' + $invocation + '; PID=' + $gui.Id)
+    $reportStarted = [DateTime]::Parse($evidence.StartedAtUtc).ToUniversalTime()
+    $reportWritten = [DateTime]::Parse($evidence.ReportWrittenAtUtc).ToUniversalTime()
+    Assert-Check ($reportStarted -ge $started.AddSeconds(-1) -and $reportStarted -le $finished -and $reportWritten -ge $reportStarted -and $reportWritten -le $finished) ($Label + ' report freshness') 'Started/written timestamps belong to this invocation.'
+    Assert-Check ($evidence.Completed -is [bool] -and $evidence.Completed -and $evidence.ExitCode -eq $ExpectedExit) ($Label + ' final report') ('Completed=' + $evidence.Completed + '; ExitCode=' + $evidence.ExitCode)
+    $expectedSuccess = $ExpectedExit -eq 0 -and $ExpectedSnapshot
+    Assert-Check ($evidence.Success -is [bool] -and $evidence.Success -eq $expectedSuccess -and $evidence.HasValidSnapshot -is [bool] -and $evidence.HasValidSnapshot -eq $ExpectedSnapshot) ($Label + ' explicit success') ('Success=' + $evidence.Success + '; HasValidSnapshot=' + $evidence.HasValidSnapshot)
+    if ($ExpectedSnapshot) {
+        $lastSnapshot = [DateTime]::Parse($evidence.LastSuccessfulSnapshotUtc).ToUniversalTime()
+        Assert-Check ($evidence.SamplesApplied -ge 1 -and $evidence.FirstSnapshotMilliseconds -gt 0 -and $lastSnapshot -ge $reportStarted -and $lastSnapshot -le $reportWritten) ($Label + ' valid applied snapshot') ('SamplesApplied=' + $evidence.SamplesApplied + '; endpoints=' + $evidence.EndpointCount)
+    } else {
+        Assert-Check ($evidence.SamplesApplied -eq 0 -and -not $evidence.LastSuccessfulSnapshotUtc -and $evidence.FirstSnapshotMilliseconds -eq 0 -and $evidence.Error) ($Label + ' capture failure stays failure') 'No complete snapshot was applied; orderly exit remains unsuccessful.'
+    }
+    if ($Fault -eq 'empty-snapshot') { Assert-Check ($evidence.EndpointCount -eq 0 -and $evidence.Success) 'Complete empty snapshot is valid' 'Injected complete empty table is not mistaken for collection failure.' }
+    if ($Fault -eq 'ui-after-report') { Assert-Check ($evidence.ValidReportWrittenBeforeFault -and $evidence.Error -and -not $evidence.Success) 'UI failure invalidates earlier report' 'A valid snapshot report was written before the injected UI exception; final result and exit are failure.' }
 }
 
 try {
@@ -178,27 +228,12 @@ try {
     Assert-Check (@(Find-Endpoint $afterExit 'TCP' '127.0.0.1' $ready.Port $ready.ProcessId).Count -eq 0) 'Exited process disappears' 'No stale listening endpoint retained.'
     }
     if (-not $SkipGuiSmoke) {
-        $smokePath = Join-Path $OutputDirectory ($runId + '_smoke.json')
-        $gui = Start-Process -FilePath $Executable -ArgumentList @('--smoke-test', ('"{0}"' -f $smokePath)) -PassThru
-        $descendants = New-Object 'System.Collections.Generic.HashSet[int]'
-        $watch = [Diagnostics.Stopwatch]::StartNew()
-        while (-not $gui.HasExited -and $watch.Elapsed.TotalSeconds -lt 25) {
-            $processes = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId)
-            do {
-                $added = $false
-                foreach ($process in $processes) {
-                    if (($process.ParentProcessId -eq $gui.Id -or $descendants.Contains([int]$process.ParentProcessId)) -and $descendants.Add([int]$process.ProcessId)) { $added = $true }
-                }
-            } while ($added)
-            Start-Sleep -Milliseconds 200
-            $gui.Refresh()
-        }
-        if (-not $gui.HasExited) { Stop-Process -Id $gui.Id -Force -ErrorAction SilentlyContinue; throw 'GUI smoke did not exit within 25 seconds.' }
-        Assert-Check ($gui.ExitCode -eq 0) 'GUI smoke exit' ('ExitCode=' + $gui.ExitCode)
-        Assert-Check (Test-Path -LiteralPath $smokePath) 'GUI smoke evidence' $smokePath
-        $survivors = @($descendants | Where-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue })
-        Assert-Check ($survivors.Count -eq 0) 'Exit process cleanup' ('Observed child processes=' + $descendants.Count + '; surviving=' + $survivors.Count)
+        Test-GuiSmoke 'smoke' '' 0 $true
+        Test-GuiSmoke 'smoke_empty' 'empty-snapshot' 0 $true
+        Test-GuiSmoke 'smoke_ui_error' 'ui-after-report' 1 $true
+        Test-GuiSmoke 'smoke_capture_error' 'capture-always' 2 $false
     }
+
 } catch {
     $checks.Add([pscustomobject]@{ Name='Unhandled test failure'; Passed=$false; Detail=$_.Exception.Message })
     Write-Error -ErrorRecord $_ -ErrorAction Continue
@@ -208,7 +243,7 @@ try {
         if (-not $child.WaitForExit(10000)) { $child.Kill() }
     }
     foreach ($socket in $ownedSockets) { $socket.Dispose() }
-    $report = [pscustomobject]@{ TimestampUtc=[DateTime]::UtcNow.ToString('o'); Executable=$Executable; ExecutableSha256=(Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash; Elevated=$elevated; LiveSocketsEnabled=[bool]$LiveSockets; StressConnections=$(if ($LiveSockets) {$StressConnections} else {0}); ExternalHost=$ExternalHost; ExternalPort=$ExternalPort; ExternalProbeSkipped=(-not [bool]$ExternalHost); GuiSmokeSkipped=[bool]$SkipGuiSmoke; Passed=(@($checks | Where-Object {-not $_.Passed}).Count -eq 0); Checks=@($checks.ToArray()) }
+    $report = [pscustomobject]@{ TimestampUtc=[DateTime]::UtcNow.ToString('o'); Executable=$Executable; ExecutableSha256=(Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash; Elevated=$elevated; LiveSocketsEnabled=[bool]$LiveSockets; StressConnections=$(if ($LiveSockets) {$StressConnections} else {0}); ExternalHost=$ExternalHost; ExternalPort=$ExternalPort; ExternalProbeSkipped=(-not [bool]$ExternalHost); GuiSmokeSkipped=[bool]$SkipGuiSmoke; ExplicitSmokeFaultCases=$(if ($SkipGuiSmoke) {@()} else {@('empty-snapshot','ui-after-report','capture-always')}); Passed=(@($checks | Where-Object {-not $_.Passed}).Count -eq 0); Checks=@($checks.ToArray()) }
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory ($runId + '_results.json')) -Encoding UTF8
 }
 if (-not $report.Passed) { exit 1 }

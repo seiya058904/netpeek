@@ -1,0 +1,56 @@
+{
+  "SchemaVersion": 3,
+  "Status": "720 by 480 DIP real-window and 175 percent DPI harness probe was completed for the pre-minwidth F2 artifact, but was not run for the final 7537 executable.",
+  "FinalExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "FinalMinimumWindowHarnessProbePerformed": false,
+  "StopReason": "The user said the desktop was in active use and asked to preserve the measured results. No new visible verification runs were started after that instruction.",
+  "PreMinwidthEvidence": {
+    "SchemaVersion": 2,
+    "ExecutableSha256": "F2D194843F15451CD01FB518268DAC2711526BF82D2C4A2C25749A5D54311720",
+    "HarnessSha256": "CEC228C9FB73EC85882635BCE991B1C4B61F8F1BE0D3294FCD4572A78CEF4620",
+    "SourceReportFileName": "20261029_123556_762_candidate_harness.json",
+    "SourceReportSha256": "C793DBAD7B260C83D7C56CFCDA0199CCF0813382B250AC022B76B4F68BA0DF04",
+    "Success": true,
+    "ProductExitCode": 0,
+    "OwnWindowDisplay": {
+      "TransformToDeviceM11": 1.75,
+      "TransformToDeviceM22": 1.75,
+      "GetDpiForWindow": 168,
+      "LogicalWindowWidth": 720,
+      "LogicalWindowHeight": 480,
+      "LogicalContentWidth": 706.2857142857143,
+      "LogicalContentHeight": 443.42857142857144,
+      "ImageMethod": "Actual WPF content root rendered at 96 dpi in logical coordinates; not a physical desktop screenshot."
+    },
+    "Checks": [
+      {
+        "Passed": true,
+        "Name": "Both auxiliary panels visible",
+        "Detail": "Actual PauseButton and InfoButton routed events on the real 720 by 480 logical window."
+      },
+      {
+        "Passed": true,
+        "Name": "Minimum-window connection viewport",
+        "Detail": "Actual AppList layout height is at least 70 logical pixels."
+      },
+      {
+        "Passed": true,
+        "Name": "Copy column horizontally reachable",
+        "Detail": "Actual realized endpoint copy button bounds lie within the DataGrid width; this is a layout check, not a mouse-click test."
+      },
+      {
+        "Passed": true,
+        "Name": "Minimum-window measured layout",
+        "Detail": "Actual own-window WPF geometry at the current desktop DPI.",
+        "ListViewportHeight": 146.28571428571428,
+        "GridWidth": 494.85714285714283,
+        "GridHeight": 269.7142857142857,
+        "GridFrozenColumns": 3,
+        "CopyButtonLeft": 253.14285714285714,
+        "CopyButtonRight": 298.85714285714283,
+        "RealizedEndpointRows": 7
+      }
+    ],
+    "Limitations": "Actual 175 percent desktop scale is verified by the own WPF composition transform and HWND DPI. This checks a 720 by 480 DIP real window, both real auxiliary panels and actual endpoint copy-column geometry. It does not verify a DPI transition, multiple monitors, external keyboard/mouse input, or a physical desktop screenshot."
+  }
+}

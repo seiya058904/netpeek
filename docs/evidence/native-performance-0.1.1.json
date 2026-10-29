@@ -1,0 +1,322 @@
+{
+  "SchemaVersion": 3,
+  "Status": "Native three-run performance benchmark was completed for the pre-minwidth F2 artifact, but was not run for the final 7537 executable.",
+  "FinalExecutableSha256": "7537C8091A60768D7BC42DBC240A7D0B7F7C531DA8105A5120B890AABF408842",
+  "FinalNativeBenchmarkPerformed": false,
+  "StopReason": "The user said the desktop was in active use and asked to preserve the measured results. No new visible verification runs were started after that instruction.",
+  "PreMinwidthEvidence": {
+    "SchemaVersion": 1,
+    "Method": "Separate native EXE --benchmark runs, one excluded warm-up and three measured warm launches per version. This is distinct from the common-host WPF comparison. Full observed process tree sampled about once per second; working set can double-count shared pages, and short-lived descendants may be missed. CPU uses actual sampled duration and 16 logical processors. Visible overview is not guaranteed continuously foreground; foreground sample counts are disclosed. Background is minimized. Natural endpoint load was not identical and these results do not establish an overall resource reduction. Startup ends at first ContentRendered; first-snapshot time ends at initial snapshot application. ScheduledExitWaitMilliseconds measures awaiting scheduled automatic exit after sampling, not shutdown latency. Paths, process IDs, app names, endpoint addresses and raw samples are excluded.",
+    "Versions": [
+      {
+        "Label": "baseline_0_1_0",
+        "ExecutableSha256": "C0207E41E50FE1D36CD6296F51364020DC3C467C96C1F2EF7DE80E29A582181B",
+        "SourceReportFileName": "20261029_114142_150_baseline_0_1_0_results.json",
+        "SourceReportSha256": "38C7D23F24D143BFBD36CAE2370A4D5B1DB65A9D67C95C025A6E071F5F132062",
+        "RequestedRuns": 3,
+        "RequestedSampleSeconds": 15,
+        "Failure": null,
+        "Environment": {
+          "OS": "Microsoft Windows 11 企业版",
+          "OSVersion": "10.0.22631",
+          "OSBuild": "22631",
+          "CPU": "AMD Ryzen 7 9700X 8-Core Processor             ",
+          "LogicalProcessors": 16,
+          "PhysicalMemoryBytes": 33945550848,
+          "Elevated": false,
+          "DotNetFrameworkRelease": 533320,
+          "DotNetFrameworkVersion": "4.8.09032",
+          "PowerShell": "5.1.22621.4391"
+        },
+        "VisibleOverview": {
+          "MeasuredSeconds": 46.904876,
+          "CpuSeconds": 1.734375,
+          "CpuPercentOfMachine": 0.23110270561209884,
+          "CpuPercentOfOneCore": 3.6976432897935814,
+          "AverageWorkingSetBytes": 121489687.27272727,
+          "PeakWorkingSetBytes": 126943232.0,
+          "AveragePrivateBytes": 127222039.27272727,
+          "PeakPrivateBytes": 141307904.0,
+          "ForegroundSamples": 32.0,
+          "SampleCount": 44,
+          "MaximumObservedDescendants": 0.0
+        },
+        "MinimizedBackground": {
+          "MeasuredSeconds": 47.1586935,
+          "CpuSeconds": 0.28125,
+          "CpuPercentOfMachine": 0.037274410496550336,
+          "CpuPercentOfOneCore": 0.5963905679448054,
+          "AverageWorkingSetBytes": 125325597.76744185,
+          "PeakWorkingSetBytes": 129286144.0,
+          "AveragePrivateBytes": 128204800.0,
+          "PeakPrivateBytes": 133582848.0,
+          "ForegroundSamples": 0.0,
+          "SampleCount": 43,
+          "MaximumObservedDescendants": 0.0
+        },
+        "Runs": [
+          {
+            "Run": 1,
+            "StartupMilliseconds": 370.76,
+            "FirstSnapshotMilliseconds": 207.45,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.8706217,
+              "CpuSeconds": 0.328125,
+              "CpuPercentOfMachine": 0.12921870918264028,
+              "CpuPercentOfOneCore": 2.0674993469222445,
+              "AverageWorkingSetBytes": 121209378.13333334,
+              "PeakWorkingSetBytes": 125124608.0,
+              "AveragePrivateBytes": 128703965.86666666,
+              "PeakPrivateBytes": 141307904.0,
+              "ForegroundSamples": 15.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 15.5373038,
+              "CpuSeconds": 0.265625,
+              "CpuPercentOfMachine": 0.10684970001037117,
+              "CpuPercentOfOneCore": 1.7095952001659387,
+              "AverageWorkingSetBytes": 126417683.6923077,
+              "PeakWorkingSetBytes": 129286144.0,
+              "AveragePrivateBytes": 130651687.38461539,
+              "PeakPrivateBytes": 133582848.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 13,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 6074.0941
+          },
+          {
+            "Run": 2,
+            "StartupMilliseconds": 357.24,
+            "FirstSnapshotMilliseconds": 422.84,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.1935173,
+              "CpuSeconds": 0.078125,
+              "CpuPercentOfMachine": 0.032137472868115934,
+              "CpuPercentOfOneCore": 0.5141995658898549,
+              "AverageWorkingSetBytes": 122898139.42857143,
+              "PeakWorkingSetBytes": 126943232.0,
+              "AveragePrivateBytes": 126178450.28571428,
+              "PeakPrivateBytes": 133738496.0,
+              "ForegroundSamples": 2.0,
+              "SampleCount": 14,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 15.9701814,
+              "CpuSeconds": 0.0,
+              "CpuPercentOfMachine": 0.0,
+              "CpuPercentOfOneCore": 0.0,
+              "AverageWorkingSetBytes": 123601442.13333334,
+              "PeakWorkingSetBytes": 124493824.0,
+              "AveragePrivateBytes": 123926664.53333333,
+              "PeakPrivateBytes": 124858368.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 5784.8058
+          },
+          {
+            "Run": 3,
+            "StartupMilliseconds": 285.3,
+            "FirstSnapshotMilliseconds": 381.73,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.840737,
+              "CpuSeconds": 1.328125,
+              "CpuPercentOfMachine": 0.5240148390822977,
+              "CpuPercentOfOneCore": 8.384237425316764,
+              "AverageWorkingSetBytes": 120455441.06666666,
+              "PeakWorkingSetBytes": 123334656.0,
+              "AveragePrivateBytes": 126714129.06666666,
+              "PeakPrivateBytes": 133185536.0,
+              "ForegroundSamples": 15.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 15.6512083,
+              "CpuSeconds": 0.015625,
+              "CpuPercentOfMachine": 0.0062395342345549125,
+              "CpuPercentOfOneCore": 0.0998325477528786,
+              "AverageWorkingSetBytes": 126103278.93333334,
+              "PeakWorkingSetBytes": 128864256.0,
+              "AveragePrivateBytes": 130362299.73333333,
+              "PeakPrivateBytes": 133181440.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 6205.074500000001
+          }
+        ]
+      },
+      {
+        "Label": "candidate_0_1_1",
+        "ExecutableSha256": "F2D194843F15451CD01FB518268DAC2711526BF82D2C4A2C25749A5D54311720",
+        "SourceReportFileName": "20261029_120757_513_candidate_0_1_1_results.json",
+        "SourceReportSha256": "C394010AB6478E4B86F17A1D84D083025AC712041A5B07DF4C276D25BC016B26",
+        "RequestedRuns": 3,
+        "RequestedSampleSeconds": 15,
+        "Failure": null,
+        "Environment": {
+          "OS": "Microsoft Windows 11 企业版",
+          "OSVersion": "10.0.22631",
+          "OSBuild": "22631",
+          "CPU": "AMD Ryzen 7 9700X 8-Core Processor             ",
+          "LogicalProcessors": 16,
+          "PhysicalMemoryBytes": 33945550848,
+          "Elevated": false,
+          "DotNetFrameworkRelease": 533320,
+          "DotNetFrameworkVersion": "4.8.09032",
+          "PowerShell": "5.1.22621.4391"
+        },
+        "VisibleOverview": {
+          "MeasuredSeconds": 47.107096999999996,
+          "CpuSeconds": 0.046875,
+          "CpuPercentOfMachine": 0.006219206205808013,
+          "CpuPercentOfOneCore": 0.0995072992929282,
+          "AverageWorkingSetBytes": 119242387.91111112,
+          "PeakWorkingSetBytes": 124833792.0,
+          "AveragePrivateBytes": 132733064.53333333,
+          "PeakPrivateBytes": 147439616.0,
+          "ForegroundSamples": 27.0,
+          "SampleCount": 45,
+          "MaximumObservedDescendants": 0.0
+        },
+        "MinimizedBackground": {
+          "MeasuredSeconds": 47.4086941,
+          "CpuSeconds": 0.046875,
+          "CpuPercentOfMachine": 0.006179641847590989,
+          "CpuPercentOfOneCore": 0.09887426956145583,
+          "AverageWorkingSetBytes": 120796410.31111111,
+          "PeakWorkingSetBytes": 123310080.0,
+          "AveragePrivateBytes": 130116266.66666667,
+          "PeakPrivateBytes": 133160960.0,
+          "ForegroundSamples": 0.0,
+          "SampleCount": 45,
+          "MaximumObservedDescendants": 0.0
+        },
+        "Runs": [
+          {
+            "Run": 1,
+            "StartupMilliseconds": 340.97,
+            "FirstSnapshotMilliseconds": 193.98,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.5570964,
+              "CpuSeconds": 0.0,
+              "CpuPercentOfMachine": 0.0,
+              "CpuPercentOfOneCore": 0.0,
+              "AverageWorkingSetBytes": 118656477.86666666,
+              "PeakWorkingSetBytes": 121729024.0,
+              "AveragePrivateBytes": 132178739.2,
+              "PeakPrivateBytes": 146952192.0,
+              "ForegroundSamples": 15.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 15.6605167,
+              "CpuSeconds": 0.015625,
+              "CpuPercentOfMachine": 0.006235825539523865,
+              "CpuPercentOfOneCore": 0.09977320863238184,
+              "AverageWorkingSetBytes": 120140322.13333334,
+              "PeakWorkingSetBytes": 121135104.0,
+              "AveragePrivateBytes": 129313177.6,
+              "PeakPrivateBytes": 130322432.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 6240.9987
+          },
+          {
+            "Run": 2,
+            "StartupMilliseconds": 360.4,
+            "FirstSnapshotMilliseconds": 198.33,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.693435,
+              "CpuSeconds": 0.015625,
+              "CpuPercentOfMachine": 0.006222745370914653,
+              "CpuPercentOfOneCore": 0.09956392593463445,
+              "AverageWorkingSetBytes": 119128337.06666666,
+              "PeakWorkingSetBytes": 123904000.0,
+              "AveragePrivateBytes": 132463820.8,
+              "PeakPrivateBytes": 146190336.0,
+              "ForegroundSamples": 11.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 15.6621169,
+              "CpuSeconds": 0.015625,
+              "CpuPercentOfMachine": 0.006235188424624771,
+              "CpuPercentOfOneCore": 0.09976301479399634,
+              "AverageWorkingSetBytes": 121150668.8,
+              "PeakWorkingSetBytes": 121589760.0,
+              "AveragePrivateBytes": 130119270.4,
+              "PeakPrivateBytes": 130560000.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 6316.1828000000005
+          },
+          {
+            "Run": 3,
+            "StartupMilliseconds": 347.36,
+            "FirstSnapshotMilliseconds": 192.64,
+            "VisibleOverview": {
+              "MeasuredSeconds": 15.8565656,
+              "CpuSeconds": 0.03125,
+              "CpuPercentOfMachine": 0.012317452904177434,
+              "CpuPercentOfOneCore": 0.19707924646683894,
+              "AverageWorkingSetBytes": 119942348.8,
+              "PeakWorkingSetBytes": 124833792.0,
+              "AveragePrivateBytes": 133556633.6,
+              "PeakPrivateBytes": 147439616.0,
+              "ForegroundSamples": 1.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "MinimizedBackground": {
+              "MeasuredSeconds": 16.0860605,
+              "CpuSeconds": 0.015625,
+              "CpuPercentOfMachine": 0.006070861787446343,
+              "CpuPercentOfOneCore": 0.09713378859914149,
+              "AverageWorkingSetBytes": 121098240.0,
+              "PeakWorkingSetBytes": 123310080.0,
+              "AveragePrivateBytes": 130916352.0,
+              "PeakPrivateBytes": 133160960.0,
+              "ForegroundSamples": 0.0,
+              "SampleCount": 15,
+              "MaximumObservedDescendants": 0.0
+            },
+            "ExitCode": 0,
+            "ObservedChildCount": 0,
+            "ObservedSurvivingChildCount": 0,
+            "ScheduledExitWaitMilliseconds": 5643.529
+          }
+        ]
+      }
+    ],
+    "SceneStateLimitations": "These earlier native measurements record scheduled application phases and actual foreground samples, but do not sample the own HWND visible/minimized flags. External minimization during a scheduled visible phase cannot be excluded. They remain separate descriptive native-launch evidence; the final common-host report validates visible/minimized state for every retained sample."
+  }
+}
