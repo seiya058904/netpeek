@@ -42,9 +42,24 @@ if ($Package) {
     }
   } finally { $zip.Dispose(); $stream.Dispose() }
   Copy-Item -LiteralPath $sourceZip -Destination (Join-Path $root ('dist\NetPeek_' + $version + '_source.zip'))
-  Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $output -Recurse -Force
   $archive = Join-Path $root ('dist\NetPeek_' + $version + '_windows_x64.zip')
-  Compress-Archive -LiteralPath $output -DestinationPath $archive -Force
+  # Build from an explicit current-file list. Old files in dist must never leak
+  # into a later release after documentation or screenshots have been removed.
+  $stream = [System.IO.File]::Open($archive,[System.IO.FileMode]::Create)
+  $zip = New-Object System.IO.Compression.ZipArchive($stream,[System.IO.Compression.ZipArchiveMode]::Create)
+  try {
+    foreach ($name in @('NetPeek.exe','NetPeek.exe.config','NetPeek_source.zip')) {
+      [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,(Join-Path $output $name),('NetPeek/' + $name),[System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+    foreach ($relative in @('README.md','LICENSE','THIRD_PARTY_NOTICES.md','assets','docs')) {
+      $path = Join-Path $root $relative
+      $entries = if (Test-Path -LiteralPath $path -PathType Container) { @(Get-ChildItem -LiteralPath $path -File -Recurse) } else { @(Get-Item -LiteralPath $path) }
+      foreach ($entry in $entries) {
+        $entryName = 'NetPeek/' + $entry.FullName.Substring($root.Length + 1).Replace('\','/')
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$entry.FullName,$entryName,[System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+      }
+    }
+  } finally { $zip.Dispose(); $stream.Dispose() }
   Get-FileHash -LiteralPath $archive -Algorithm SHA256 | Format-List
 }
 Get-Item -LiteralPath (Join-Path $output 'NetPeek.exe') | Select-Object FullName,Length
