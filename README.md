@@ -33,6 +33,9 @@
 
 ## 🖼️ A peek inside
 
+<p align="center"><img src="docs/netpeek-preview.gif" width="720" alt="A ten-second looping preview of NetPeek" /></p>
+
+
 <p align="center">
   <img src="docs/screenshots/0.1.1/overview.png" width="100%" alt="NetPeek's Simplified Chinese interface, with network endpoints grouped by application" />
 </p>
