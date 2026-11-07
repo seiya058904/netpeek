@@ -19,7 +19,7 @@ using System.Windows.Threading;
 
 // Runs the unchanged real product entry point inside a test-owned process.
 // No external UI Automation, synthetic application rows, or collector substitutions.
-internal static class WpfHarness
+internal static partial class WpfHarness
 {
     private static string target, destination, mode;
     private static int seconds, repetitions, fixturePid, phaseIndex, repetition;
@@ -88,13 +88,17 @@ internal static class WpfHarness
         timer.Tick += Tick; timer.Start();
         int productExit=-1;
         try {
-            var assembly=Assembly.LoadFrom(target);
+            if (mode=="clipboard") { StartClipboardFixtures(); Progress("sockets ready"); }
+            var assembly=Assembly.LoadFrom(target); Progress("starting product");
             var entry=assembly.GetType("NetPeek.Program",true).GetMethod("Main",BindingFlags.Public|BindingFlags.Static);
             productExit=(int)entry.Invoke(null,new object[] { new string[0] });
+            Progress("product returned "+productExit);
             if (!completed && failure==null) failure="Product exited before test completion.";
         } catch (Exception error) { failure=error.ToString(); }
         finally {
             timer.Stop();
+            DisposeClipboardFixtures(); Progress("restoring clipboard");
+            RestoreClipboard(); Progress("clipboard restore finished");
             foreach(var fixture in ownedFixtures) { try { File.WriteAllText(fixture.StopPath,"stop"); if(!fixture.Process.WaitForExit(5000)) fixture.Process.Kill(); fixture.Process.Dispose(); } catch {} }
             Write(destination,new {
                 SchemaVersion=1,TargetExecutable=target,TargetSha256=Hash(target),HarnessSha256=Hash(Assembly.GetExecutingAssembly().Location),
@@ -115,6 +119,7 @@ internal static class WpfHarness
             if (!started) {
                 if (Application.Current==null || Application.Current.MainWindow==null || !Application.Current.MainWindow.IsLoaded) return;
                 window=Application.Current.MainWindow;
+                Progress("main window loaded");
                 ownWindowHandle=new System.Windows.Interop.WindowInteropHelper(window).Handle;
                 window.StateChanged+=delegate {windowStateEvents.Add(new {TimestampUtc=DateTime.UtcNow.ToString("o"),State=window.WindowState.ToString(),Mode=mode,PhaseIndex=phaseIndex,Repetition=repetition,GuiStage=guiStage});};
                 var list=(ListBox)window.FindName("AppList");
@@ -128,6 +133,7 @@ internal static class WpfHarness
                 started=true; initialized=DateTime.UtcNow; return;
             }
             if ((DateTime.UtcNow-initialized).TotalSeconds<5) return;
+            if(mode=="clipboard") {busy=true;RunClipboard();return;}
             if(mode=="dpi") {busy=true;RunMinimumWindow();return;}
             if (mode=="gui") { busy=true; RunMinimumWindow(); return; }
             if (mode!="benchmark") throw new ArgumentException("Unknown harness mode.");
@@ -138,7 +144,12 @@ internal static class WpfHarness
                 if(!fixtureSearchApplied) {
                     ((TextBox)window.FindName("SearchBox")).Text=fixturePid.ToString();fixtureSearchApplied=true;
                     var debounce=new DispatcherTimer(DispatcherPriority.Background) {Interval=TimeSpan.FromMilliseconds(450)};
-                    debounce.Tick+=delegate {debounce.Stop();try {ExpandMeasured(0);}catch(Exception error){Fail(error);}};debounce.Start();
+                    debounce.Tick+=delegate {debounce.Stop();try {
+                        // New versions auto-expand search results. Warm both versions
+                        // explicitly so the comparison never labels a warm result cold.
+                        ExpandControlledFixture(true); ExpandControlledFixture(false);
+                        dispatcher.BeginInvoke(DispatcherPriority.ContextIdle,new Action(delegate {ExpandMeasured(0);}));
+                    }catch(Exception error){Fail(error);}};debounce.Start();
                 } else ExpandMeasured(0);
                 return;
             }
@@ -164,7 +175,9 @@ internal static class WpfHarness
             var copy=Visuals(grid).OfType<Button>().First(b=>(string)b.Tag=="CopyEndpoint");
             Rect copyBounds=copy.TransformToAncestor(grid).TransformBounds(new Rect(0,0,copy.ActualWidth,copy.ActualHeight));
             bool copyReachable=copyBounds.Left>=-1 && copyBounds.Right<=grid.ActualWidth+1 && copy.IsEnabled;
-            Check(((Border)window.FindName("WarningPanel")).Visibility==Visibility.Visible && ((Border)window.FindName("InfoPanel")).Visibility==Visibility.Visible,"Both auxiliary panels visible","Actual PauseButton and InfoButton routed events on the real 720 by 480 logical window.");
+            var inlineInfo=window.FindName("InfoPanel") as Border;
+            bool helpVisible=inlineInfo!=null ? inlineInfo.Visibility==Visibility.Visible : window.OwnedWindows.Cast<Window>().Any(w=>w.IsVisible && w.Title.Contains("数据说明"));
+            Check(((Border)window.FindName("WarningPanel")).Visibility==Visibility.Visible && helpVisible,"Warning and help visible","Actual PauseButton and InfoButton routed events on the real 720 by 480 logical window; current help opens separately.");
             Check(list.ActualHeight>=70,"Minimum-window connection viewport","Actual AppList layout height is at least 70 logical pixels.");
             Check(copyReachable,"Copy column horizontally reachable","Actual realized endpoint copy button bounds lie within the DataGrid width; this is a layout check, not a mouse-click test.");
             guiChecks.Add(new {Passed=true,Name="Minimum-window measured layout",Detail="Actual own-window WPF geometry at the current desktop DPI.",ListViewportHeight=list.ActualHeight,GridWidth=grid.ActualWidth,GridHeight=grid.ActualHeight,GridFrozenColumns=grid.FrozenColumnCount,CopyButtonLeft=copyBounds.Left,CopyButtonRight=copyBounds.Right,RealizedEndpointRows=Visuals(grid).OfType<DataGridRow>().Count()});
@@ -202,7 +215,7 @@ internal static class WpfHarness
                 var targetGrids=Visuals(window).OfType<DataGrid>().Where(g=>g.IsVisible && g.DataContext!=null && g.DataContext.GetType().GetProperty("Identity")!=null && Convert.ToInt32(Get(Get(g.DataContext,"Identity"),"ProcessId"))==fixturePid).ToList();
                 int targetRows=targetGrids.Sum(g=>Visuals(g).OfType<DataGridRow>().Count());
                 int currentEndpoints=Items(Get(Items(Get(fixtureApplication,"Processes")).Single(p=>Convert.ToInt32(Get(Get(p,"Identity"),"ProcessId"))==fixturePid),"Endpoints")).Count(x=>(bool)Get(x,"IsCurrent"));
-                expansion.Add(new {Attempt=attempt+1,Milliseconds=clock.Elapsed.TotalMilliseconds,ExpandedApplications=list.Items.Count,RealizedDataGrids=gridCount,RealizedRows=rows,TargetVisibleDataGrids=targetGrids.Count,TargetRealizedRows=targetRows,TargetCurrentEndpointCount=currentEndpoints,Kind=attempt==0 ? "first expansion" : "warm re-expansion"});
+                expansion.Add(new {Attempt=attempt+1,Milliseconds=clock.Elapsed.TotalMilliseconds,ExpandedApplications=list.Items.Count,RealizedDataGrids=gridCount,RealizedRows=rows,TargetVisibleDataGrids=targetGrids.Count,TargetRealizedRows=targetRows,TargetCurrentEndpointCount=currentEndpoints,Kind="warm re-expansion after explicit shared warmup"});
                 if(targetGrids.Count!=1 || targetRows==0 || currentEndpoints!=513) throw new InvalidOperationException("Controlled expansion must realize one actual 513-endpoint fixture grid.");
                 if(attempt<2) {
                     ExpandControlledFixture(false);
@@ -312,11 +325,13 @@ internal static class WpfHarness
     }
     private static void Check(bool success,string name,string detail)
     {
+        Progress((success ? "PASS " : "FAIL ")+name);
         guiChecks.Add(new {Passed=success,Name=name,Detail=detail});
         if(!success) throw new InvalidOperationException(name+": "+detail);
     }
     private static void RunGui()
     {
+        PreserveClipboard();
         guiStage=0; GuiStep();
     }
     private static void GuiDelay(int milliseconds,bool advance)
@@ -411,6 +426,7 @@ internal static class WpfHarness
                 expectedClipboard=(string)Get(copy.DataContext,"CopyText");copy.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,copy));GuiDelay(1500,true);break;
             case 6:
                 Check(Clipboard.GetText()==expectedClipboard,"Copy endpoint clipboard equality","Actual routed CopyEndpoint click; compared only the owned loopback endpoint value.");
+                lastClipboardSequence=GetClipboardSequenceNumber();
                 Click("PauseButton");pausedText=((TextBlock)window.FindName("LastUpdated")).Text;GuiDelay(2500,true);break;
             case 7:
                 Check(((TextBlock)window.FindName("LastUpdated")).Text==pausedText,"Pause preserves timestamp","Waited 2.5 seconds with real collector still active.");Click("PauseButton");GuiDelay(3000,true);break;
@@ -456,7 +472,7 @@ internal static class WpfHarness
                 Set(multiple,"IsExpanded",true);foreach(var p in Items(Get(multiple,"Processes")))Set(p,"IsExpanded",true);list.ScrollIntoView(multiple);window.UpdateLayout();GuiDelay(400,true);break;
             case 15:
                 SaveImage("multi-process");Check(Visuals(window).OfType<DataGrid>().Count()>0,"Multi-process details render","Real small multi-process fixture; no 257-process cache-pressure simulation.");
-                completed=true;Click("ExitButton");break;
+                RestoreClipboard();completed=true;Click("ExitButton");break;
         }
     }
     private static void Fail(Exception error)
@@ -465,5 +481,6 @@ internal static class WpfHarness
         if(window!=null) window.Close(); else if(Application.Current!=null) Application.Current.Shutdown(1);
     }
     private static string Hash(string path) {using(var hash=SHA256.Create())using(var stream=File.OpenRead(path))return BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","");}
+    private static void Progress(string stage) { File.AppendAllText(destination+".progress",DateTime.UtcNow.ToString("o")+" "+stage+Environment.NewLine); }
     private static void Write(string path,object value) {File.WriteAllText(path,new JavaScriptSerializer {MaxJsonLength=Int32.MaxValue,RecursionLimit=96}.Serialize(value),new System.Text.UTF8Encoding(false));}
 }

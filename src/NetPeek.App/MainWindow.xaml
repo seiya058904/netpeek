@@ -100,10 +100,10 @@
           <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding PathText}"/>
           <TextBlock Text="{Binding Subtitle}" FontSize="11" Foreground="#5F7168" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
-        <Border Grid.Column="2" Background="{Binding StatusBrush}" CornerRadius="8" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="9,5"><TextBlock Text="{Binding Status}" FontSize="11" Foreground="#355746"/></Border>
+        <Border Grid.Column="2" Background="{Binding DisplayStatusBrush}" CornerRadius="8" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="9,5"><TextBlock Text="{Binding DisplayStatus}" FontSize="11" Foreground="#355746"/></Border>
         <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
-          <TextBlock Text="{Binding CountText}" FontSize="19" FontFamily="Segoe UI" FontWeight="SemiBold" HorizontalAlignment="Right"/>
-          <TextBlock Text="{Binding CountLabel}" FontSize="10" Foreground="#5F7168" Margin="0,3,0,0"/>
+          <TextBlock Text="{Binding DisplayCountText}" FontSize="19" FontFamily="Segoe UI" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+          <TextBlock Text="{Binding DisplayCountLabel}" FontSize="10" Foreground="#5F7168" Margin="0,3,0,0"/>
         </StackPanel>
       </Grid>
     </DataTemplate>
@@ -137,7 +137,7 @@
       </Grid>
     </Border>
     <Grid x:Name="MainPane" Grid.Column="1" Margin="24,20,24,14">
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel x:Name="HeaderLabels"><TextBlock Text="应用连接" FontSize="24" FontWeight="SemiBold"/><TextBlock x:Name="HeaderSubtitle" Text="每个应用的网络动向，一眼看清。" Foreground="#5F7168" FontSize="12" Margin="0,4,0,0"/></StackPanel>
@@ -152,31 +152,35 @@
       </Grid>
       <Border x:Name="SummaryPanel" Grid.Row="1" BorderBrush="#DFE8E1" BorderThickness="0,0,0,1" Margin="0,16,0,14" Padding="0,0,0,12">
         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-          <StackPanel><TextBlock Text="已建立的 TCP 连接" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="TcpCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 条" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
-          <StackPanel Grid.Column="1" Margin="18,0,0,0"><TextBlock Text="TCP 监听端点" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="ListenCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 个" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
-          <StackPanel Grid.Column="2" Margin="18,0,0,0"><TextBlock Text="UDP 本地端点" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="UdpCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 个" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
+          <StackPanel><TextBlock Text="全机 · 已建立 TCP" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="TcpCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 条" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
+          <StackPanel Grid.Column="1" Margin="18,0,0,0"><TextBlock Text="全机 · TCP 监听" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="ListenCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 个" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
+          <StackPanel Grid.Column="2" Margin="18,0,0,0"><TextBlock Text="全机 · UDP 端点" Foreground="#5F7168" FontSize="11"/><StackPanel Orientation="Horizontal" Margin="0,5,0,0"><TextBlock x:Name="UdpCount" Text="—" FontSize="28" FontFamily="Segoe UI" FontWeight="SemiBold"/><TextBlock Text=" 个" VerticalAlignment="Bottom" Foreground="#5F7168" FontSize="11" Margin="6,0,0,5"/></StackPanel></StackPanel>
         </Grid>
       </Border>
-      <Grid Grid.Row="2" Margin="0,0,0,10">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="139"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid x:Name="SearchToolbar" Grid.Row="2" Margin="0,0,0,10">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="SearchColumn" Width="*"/><ColumnDefinition x:Name="StateColumn" Width="132"/><ColumnDefinition x:Name="TimeColumn" Width="140"/><ColumnDefinition x:Name="PauseColumn" Width="Auto"/></Grid.ColumnDefinitions>
         <Border x:Name="SearchBorder" Background="White" BorderBrush="#D5E1D8" BorderThickness="1" CornerRadius="10" Padding="10,0,4,0" Height="38">
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <Path Data="M 15,15 L 20,20 M 16,9 A 7,7 0 1 1 2,9 A 7,7 0 1 1 16,9" Stroke="#6D8273" StrokeThickness="1.7" Width="20" Height="22" VerticalAlignment="Center"/>
-            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" Foreground="#20382E" CaretBrush="#25664F" SelectionBrush="#BBDEC8" VerticalContentAlignment="Center" Padding="5,0" AutomationProperties.Name="搜索应用、PID 或地址" ToolTip="搜索应用名称、路径、PID、IP 或端口 · Ctrl+F"/>
+            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" Foreground="#20382E" CaretBrush="#25664F" SelectionBrush="#BBDEC8" VerticalContentAlignment="Center" Padding="5,0" AutomationProperties.Name="搜索应用、PID 或地址" ToolTip="搜索应用、完整 PID、IP、端口或协议 · Enter 定位首个结果 · Ctrl+F"/>
             <TextBlock x:Name="SearchPlaceholder" Grid.Column="1" Text="搜索应用、PID 或地址" Foreground="#64766B" VerticalAlignment="Center" Margin="5,0,0,0" IsHitTestVisible="False" FontSize="12" TextTrimming="CharacterEllipsis"/>
             <Button x:Name="ClearSearchButton" Grid.Column="2" Style="{StaticResource QuietButton}" Padding="6,2" MinWidth="30" Visibility="Collapsed" ToolTip="清空搜索并恢复全部应用" AutomationProperties.Name="清空搜索"><Path Data="M 2,2 L 10,10 M 10,2 L 2,10" Stroke="#486650" StrokeThickness="1.6" Width="12" Height="12"/></Button>
           </Grid>
         </Border>
-        <ComboBox x:Name="FilterBox" Grid.Column="1" SelectedIndex="0" Margin="10,0,0,0" Padding="9,8" VerticalContentAlignment="Center" Background="White" BorderBrush="#D5E1D8" FontSize="12" AutomationProperties.Name="连接筛选">
-          <ComboBoxItem Content="全部应用"/><ComboBoxItem Content="有已建立连接"/><ComboBoxItem Content="本地 / 其他端点"/><ComboBoxItem Content="仅历史出现"/>
+        <ComboBox x:Name="FilterBox" Grid.Column="1" SelectedIndex="0" Margin="8,0,0,0" Padding="9,8" MinHeight="38" VerticalContentAlignment="Center" Background="White" BorderBrush="#D5E1D8" FontSize="12" AutomationProperties.Name="端点状态筛选" ToolTip="按端点最后观察到的状态筛选；只看当前连接请选择“当前快照”">
+          <ComboBoxItem Content="全部状态"/><ComboBoxItem Content="TCP 已建立"/><ComboBoxItem Content="TCP 监听"/><ComboBoxItem Content="UDP 绑定"/><ComboBoxItem Content="TCP 其他状态"/>
         </ComboBox>
-        <Button x:Name="PauseButton" Grid.Column="2" Content="暂停刷新" Margin="8,0,0,0" MinWidth="82" FontSize="12" ToolTip="只暂停界面；后台继续采集 · Ctrl+P"/>
+        <ComboBox x:Name="TimeFilterBox" Grid.Column="2" SelectedIndex="0" Margin="8,0,0,0" Padding="9,8" MinHeight="38" FontSize="12" AutomationProperties.Name="端点时间范围" ToolTip="历史指当前快照中已不再出现的端点；暂停时以画面时间为准">
+          <ComboBoxItem Content="全部时间范围"/><ComboBoxItem Content="当前快照"/><ComboBoxItem Content="近 60 秒历史"/>
+        </ComboBox>
+        <Button x:Name="PauseButton" Grid.Column="3" Content="暂停刷新" Margin="8,0,0,0" MinWidth="82" FontSize="12" ToolTip="只暂停界面；后台继续采集 · Ctrl+P"/>
       </Grid>
       <StackPanel Grid.Row="3">
         <Border x:Name="WarningPanel" Background="#FFF2D9" CornerRadius="10" Padding="10,7" Margin="0,0,0,8" Visibility="Collapsed">
-          <DockPanel><Button x:Name="RetryButton" Content="立即重试" Style="{StaticResource CopyButton}" DockPanel.Dock="Right" Margin="10,0,0,0"/><ScrollViewer x:Name="WarningScroll" MaxHeight="72" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><TextBlock x:Name="WarningText" Foreground="#775219" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"/></ScrollViewer></DockPanel>
+          <DockPanel><Button x:Name="RetryButton" Content="立即重试" Style="{StaticResource CopyButton}" DockPanel.Dock="Right" Margin="8,0,0,0"/><Button x:Name="WarningDetailsButton" Content="详情" Style="{StaticResource CopyButton}" DockPanel.Dock="Right" Margin="8,0,0,0" ToolTip="查看完整采集提示"/><TextBlock x:Name="WarningText" Foreground="#775219" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></DockPanel>
         </Border>
-        <Grid Margin="2,0,2,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="ResultText" Text="正在发现应用…" Foreground="#5F7168" FontSize="11"/><TextBlock Grid.Column="1" Text="点击应用，展开连接详情" Foreground="#5F7168" FontSize="11"/></Grid>
+        <Grid Margin="2,0,2,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="ResultText" Text="正在发现应用…" Foreground="#5F7168" FontSize="11" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="ResultHint" Grid.Column="1" Text="点击应用，展开连接详情" Foreground="#5F7168" FontSize="11" Margin="8,0,0,0"/></Grid>
       </StackPanel>
       <Grid Grid.Row="4">
         <ListBox x:Name="AppList" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" Padding="0,0,5,0" AutomationProperties.Name="应用连接列表">
@@ -185,16 +189,22 @@
             <Expander Style="{StaticResource AppExpander}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Header="{Binding}" HeaderTemplate="{StaticResource AppHeader}">
               <StackPanel>
                 <Border Background="#F4F7F3" CornerRadius="8" Padding="10,7" Margin="0,0,0,9"><DockPanel><Button Content="复制路径" Tag="CopyPath" Style="{StaticResource CopyButton}" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox Text="{Binding PathText, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="#5F7168" FontSize="11" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Auto" ToolTip="{Binding PathText}" AutomationProperties.Name="应用完整路径"/></DockPanel></Border>
-                <ItemsControl ItemsSource="{Binding Processes}"><ItemsControl.ItemTemplate><DataTemplate>
+                <DockPanel Margin="4,0,4,5"><Button Content="查看该应用全部端点" Tag="ShowAppEndpoints" Style="{StaticResource CopyButton}" DockPanel.Dock="Right" Visibility="{Binding CanShowAll, Converter={StaticResource BoolVisibility}}"/><TextBlock Text="{Binding MatchSummary}" FontSize="11" Foreground="#5F7168" VerticalAlignment="Center" TextWrapping="Wrap"/></DockPanel>
+                <ItemsControl ItemsSource="{Binding DisplayProcesses}"><ItemsControl.ItemTemplate><DataTemplate>
                   <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Margin="0,3,0,3" HorizontalContentAlignment="Stretch">
-                    <Expander.Header><StackPanel Orientation="Horizontal" Margin="4,3,0,3"><TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"/><TextBlock Text="{Binding CountText}" FontSize="11" Foreground="#5F7168" Margin="12,1,0,0"/></StackPanel></Expander.Header>
+                    <Expander.Header><StackPanel Margin="4,3,0,3"><TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding DisplayCountText}" FontSize="11" Foreground="#5F7168" Margin="0,3,0,0"/></StackPanel></Expander.Header>
                     <StackPanel Margin="0,8,0,8">
                       <TextBlock Text="{Binding Note}" Foreground="#5F7168" FontSize="10" Margin="8,0,0,8" TextWrapping="Wrap"/>
-                      <DataGrid ItemsSource="{Binding Endpoints}" MaxHeight="270" AutomationProperties.Name="进程连接详情">
+                      <DataGrid ItemsSource="{Binding DisplayEndpoints}" MaxHeight="270" AutomationProperties.Name="进程连接详情">
                         <DataGrid.Columns>
                           <DataGridTextColumn Header="远端 IP : 端口" Binding="{Binding Remote}" Width="*" MinWidth="155" ElementStyle="{StaticResource EndpointText}"/>
                           <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="90" MinWidth="90"/>
-                          <DataGridTemplateColumn Header="复制" Width="62" MinWidth="62"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="复制" Tag="CopyEndpoint" Style="{StaticResource CopyButton}" ToolTip="复制远端地址；监听和 UDP 复制本地地址"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                          <DataGridTemplateColumn Header="复制" Width="96" MinWidth="96"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                              <Button Content="复制" Tag="CopyEndpoint" Style="{StaticResource CopyButton}" Padding="4,3" ToolTip="复制远端地址；监听和 UDP 复制本地地址"/>
+                              <Button Grid.Column="1" Tag="CopyMenu" Style="{StaticResource CopyButton}" Padding="3" Margin="2,0,0,0" ToolTip="更多复制选项 · 也可右键端点或按 Shift+F10" AutomationProperties.Name="更多复制选项"><Path Data="M 0,0 L 4,4 L 8,0" Stroke="#294F3E" StrokeThickness="1.5" Width="8" Height="5"/></Button>
+                            </Grid>
+                          </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                           <DataGridTextColumn Header="协议" Binding="{Binding Transport}" Width="84" MinWidth="84"/>
                           <DataGridTextColumn Header="本地 IP : 端口" Binding="{Binding Local}" Width="*" MinWidth="155" ElementStyle="{StaticResource EndpointText}"/>
                           <DataGridTextColumn Header="地址范围" Binding="{Binding Scope}" Width="78" MinWidth="78"/>
@@ -215,16 +225,7 @@
           <Button x:Name="ResetFiltersButton" Content="清空筛选，显示全部" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,14,0,0"/>
         </StackPanel>
       </Grid>
-      <Border x:Name="InfoPanel" Grid.Row="5" Background="#EAF2EA" CornerRadius="12" Padding="12,9" Margin="0,8,0,0" Visibility="Collapsed">
-        <ScrollViewer x:Name="InfoScroll" MaxHeight="135" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel><DockPanel><Button x:Name="CloseInfoButton" Content="收起" Style="{StaticResource CopyButton}" DockPanel.Dock="Right"/><TextBlock Text="连接事实，简单说明" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
-          <TextBlock Text="已建立 ≠ 正在传输。TCP 监听只表示等待连接；UDP 这里只能确认本地绑定，远端未知。过去 60 秒出现过的端点标为历史，最多保留 12,000 条；身份无法核验的端点只显示当前快照。" TextWrapping="Wrap" Foreground="#486650" FontSize="11" LineHeight="19" Margin="0,8,0,0"/>
-          <TextBlock Text="每 1.5 秒读取系统连接表，可能遗漏两次采样之间的短连接。代理 / VPN 可能只显示代理或隧道端点，不能还原真实网站。路径受限时显示未知；不推测域名、流量或风险。" TextWrapping="Wrap" Foreground="#486650" FontSize="11" LineHeight="19" Margin="0,5,0,0"/>
-          <TextBlock Text="快捷键  Ctrl+F 搜索 · Ctrl+P 暂停 · F5 立即刷新 · Esc 清空搜索 · Ctrl+C 复制选中端点" TextWrapping="Wrap" Foreground="#486650" FontSize="10" Margin="0,8,0,0"/>
-          <TextBlock Text="NetPeek 0.1.1 · 独立衍生自 Snitch · AGPL-3.0-or-later · 源码与构建说明随包提供" Foreground="#486650" FontSize="10" Margin="0,8,0,0" TextWrapping="Wrap"/>
-        </StackPanel></ScrollViewer>
-      </Border>
-      <Grid Grid.Row="6" Margin="2,9,2,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid Grid.Row="5" Margin="2,9,2,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock x:Name="Footnote" Text="IPv4 + IPv6 · TCP + UDP · 默认无需管理员权限" Foreground="#617569" FontSize="10" TextTrimming="CharacterEllipsis"/>
         <TextBlock x:Name="LastUpdated" Grid.Column="1" Text="等待首次采样" Foreground="#617569" FontSize="10" Margin="12,0,0,0"/>
       </Grid>

@@ -42,7 +42,9 @@ namespace NetPeek
         {
             // A frozen area cannot itself scroll. On exceptionally small work
             // areas, release it so every column (including Copy) stays reachable.
-            grid.FrozenColumnCount = grid.ActualWidth >= 330 ? 3 : 0;
+            double required = 20; // Reserve room for a scrollbar and cell borders.
+            for (int i = 0; i < Math.Min(3, grid.Columns.Count); i++) required += grid.Columns[i].MinWidth;
+            grid.FrozenColumnCount = grid.ActualWidth >= required ? 3 : 0;
         }
 
         private void Initialized(object sender, EventArgs args)
@@ -107,6 +109,21 @@ namespace NetPeek
             double width = window.ActualWidth > 0 ? window.ActualWidth : window.Width;
             double height = window.ActualHeight > 0 ? window.ActualHeight : window.Height;
             bool narrow = width < 960, shortWindow = height < 600, compact = width < 700;
+            var search = (Border)window.FindName("SearchBorder");
+            var state = (ComboBox)window.FindName("FilterBox");
+            var time = (ComboBox)window.FindName("TimeFilterBox");
+            var pause = (Button)window.FindName("PauseButton");
+            Grid.SetColumnSpan(search, narrow ? 4 : 1);
+            Grid.SetRow(state, narrow ? 1 : 0); Grid.SetColumn(state, narrow ? 0 : 1);
+            Grid.SetRow(time, narrow ? 1 : 0); Grid.SetColumn(time, narrow ? 1 : 2);
+            Grid.SetRow(pause, narrow ? 1 : 0); Grid.SetColumn(pause, narrow ? 2 : 3);
+            ((ColumnDefinition)window.FindName("StateColumn")).Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(132);
+            ((ColumnDefinition)window.FindName("TimeColumn")).Width = narrow ? GridLength.Auto : new GridLength(140);
+            ((ColumnDefinition)window.FindName("PauseColumn")).Width = narrow ? new GridLength(0) : GridLength.Auto;
+            state.Margin = narrow ? new Thickness(0, 8, 8, 0) : new Thickness(8, 0, 0, 0);
+            time.Margin = narrow ? new Thickness(0, 8, 8, 0) : new Thickness(8, 0, 0, 0);
+            pause.Margin = narrow ? new Thickness(0, 8, 0, 0) : new Thickness(8, 0, 0, 0);
+            ((TextBlock)window.FindName("ResultHint")).Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
             ((ColumnDefinition)window.FindName("RailColumn")).Width = new GridLength(compact ? 0 : narrow ? 132 : 164);
             ((Border)window.FindName("RailPanel")).Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
             ((StackPanel)window.FindName("HeaderLabels")).Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
@@ -120,8 +137,6 @@ namespace NetPeek
             summary.Visibility = height < 560 ? Visibility.Collapsed : Visibility.Visible;
             summary.Margin = shortWindow ? new Thickness(0, 8, 0, 8) : new Thickness(0, 16, 0, 14);
             summary.Padding = new Thickness(0, 0, 0, shortWindow ? 6 : 12);
-            ((ScrollViewer)window.FindName("InfoScroll")).MaxHeight = height < 480 ? 34 : shortWindow ? 80 : 135;
-            ((ScrollViewer)window.FindName("WarningScroll")).MaxHeight = height < 480 ? 26 : shortWindow ? 42 : 72;
         }
         [StructLayout(LayoutKind.Sequential)] private struct RectNative { public int Left, Top, Right, Bottom; }
         [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public RectNative Monitor, Work; public uint Flags; }

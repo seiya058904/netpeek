@@ -44,7 +44,9 @@ namespace NetPeek
         private bool disposed, paused, hasSnapshot;
         private long version;
         private string search = "";
-        private int filter;
+        private int filter, timeFilter, matchedEndpoints;
+        private bool changingFilters;
+        private int queryGeneration;
         private DateTime lastSuccess;
         private string currentWarning;
         private double startupMilliseconds, firstSnapshotMilliseconds;
@@ -55,6 +57,8 @@ namespace NetPeek
         private readonly bool elevated;
         private string notice;
         private DateTime noticeUntil;
+        private ContextMenu endpointMenu;
+        private Window infoWindow, warningWindow;
         public MainController(Window target, Stopwatch clock, RunEvidence runEvidence, bool smokeTest, int measureSeconds)
         {
             window = target; startup = clock; evidence = runEvidence; smoke = smokeTest; benchmarkSeconds = measureSeconds;
@@ -64,15 +68,20 @@ namespace NetPeek
             Element<TextBox>("SearchBox").TextChanged += SearchChanged;
             Element<TextBox>("SearchBox").GotKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = SearchFocusBrush; };
             Element<TextBox>("SearchBox").LostKeyboardFocus += delegate { Element<Border>("SearchBorder").BorderBrush = SearchIdleBrush; };
-            Element<ComboBox>("FilterBox").SelectionChanged += delegate { filter = Element<ComboBox>("FilterBox").SelectedIndex; RefreshFilter(); };
+            Element<ComboBox>("FilterBox").SelectionChanged += delegate { filter = Element<ComboBox>("FilterBox").SelectedIndex; if (!changingFilters) RefreshFilter(true); };
+            Element<ComboBox>("TimeFilterBox").SelectionChanged += delegate { timeFilter = Element<ComboBox>("TimeFilterBox").SelectedIndex; if (!changingFilters) RefreshFilter(true); };
             window.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(ButtonClicked), true);
             window.PreviewKeyDown += KeyDown;
+            window.PreviewMouseRightButtonUp += delegate(object sender, MouseButtonEventArgs e) {
+                FrameworkElement menuTarget; EndpointView endpoint = FindEndpoint(e.OriginalSource as DependencyObject, out menuTarget);
+                if (endpoint != null) { ShowCopyMenu(menuTarget, endpoint); e.Handled = true; }
+            };
             window.ContentRendered += delegate { if (startupMilliseconds <= 0) { startupMilliseconds = startup.Elapsed.TotalMilliseconds; WriteMetrics(); } };
             window.StateChanged += delegate { if (window.WindowState != WindowState.Minimized) RenderLatest(); };
             window.IsVisibleChanged += delegate { if (window.IsVisible) RenderLatest(); };
             window.Closed += delegate { Dispose(); };
             searchTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(140) };
-            searchTimer.Tick += delegate { searchTimer.Stop(); search = Element<TextBox>("SearchBox").Text.Trim(); RefreshFilter(); };
+            searchTimer.Tick += delegate { searchTimer.Stop(); search = Element<TextBox>("SearchBox").Text.Trim(); RefreshFilter(true); };
             trayIcon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
             trayPause = new Forms.ToolStripMenuItem("暂停界面刷新", null, delegate { OnUI(TogglePause); });
             var menu = new Forms.ContextMenuStrip();
@@ -110,31 +119,63 @@ namespace NetPeek
             Element<TextBlock>("SearchPlaceholder").Visibility = Element<TextBox>("SearchBox").Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             searchTimer.Stop(); searchTimer.Start();
         }
-        private bool FilterApp(object item)
-        {
-            var app = (ApplicationView)item;
-            if (!app.Matches(search)) return false;
-            return filter == 0 || filter == 1 && app.Established > 0 || filter == 2 && app.Established == 0 && app.CurrentCount > 0 || filter == 3 && app.CurrentCount == 0;
-        }
         private void RefreshFilter()
         {
-            // Reconcile membership without a collection Reset: retained rows keep their controls,
-            // keyboard focus, expansion and DataGrid selection when other apps appear/disappear.
-            var desired = store.Applications.Where(a => FilterApp(a)).ToList();
-            var keys = new HashSet<string>(desired.Select(a => a.Key), StringComparer.OrdinalIgnoreCase);
-            for (int i = visibleApps.Count - 1; i >= 0; i--) if (!keys.Contains(visibleApps[i].Key)) visibleApps.RemoveAt(i);
-            for (int i = 0; i < desired.Count; i++) {
-                if (i < visibleApps.Count && Object.ReferenceEquals(visibleApps[i], desired[i])) continue;
-                int previous = visibleApps.IndexOf(desired[i]);
-                if (previous >= 0) visibleApps.Move(previous, i); else visibleApps.Insert(i, desired[i]);
+            RefreshFilter(false);
+        }
+        private void RefreshFilter(bool locate)
+        {
+            var query = new EndpointFilter(search, filter, timeFilter);
+            var desired = new List<ApplicationView>(); matchedEndpoints = 0;
+            foreach (var app in store.Applications) {
+                int count = query.Apply(app);
+                if (count > 0) { desired.Add(app); matchedEndpoints += count; }
             }
+            DisplayCollection.Reconcile(visibleApps, desired);
             UpdateResult();
+            // Locate once for a user query, never again on a background sample.
+            if (locate && query.IsActive && visibleApps.Count > 0) {
+                int generation = ++queryGeneration;
+                var first = visibleApps[0]; first.IsExpanded = true;
+                first.DisplayProcesses[0].IsExpanded = true;
+                Element<ListBox>("AppList").ScrollIntoView(first);
+                window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(delegate {
+                    if (disposed || generation != queryGeneration || !visibleApps.Contains(first) || !first.IsExpanded || first.DisplayProcesses.Count == 0) return;
+                    var process = first.DisplayProcesses[0]; if (!process.IsExpanded) return;
+                    var container = Element<ListBox>("AppList").ItemContainerGenerator.ContainerFromItem(first);
+                    var grid = FindGrid(container, process);
+                    if (grid != null && grid.Items.Count > 0) {
+                        grid.ScrollIntoView(grid.Items[0]); grid.UpdateLayout();
+                        grid.BringIntoView(new Rect(0, 0, Math.Min(335, grid.ActualWidth), Math.Min(70, grid.ActualHeight)));
+                    }
+                }));
+            } else if (locate) { queryGeneration++; }
+        }
+        private static DataGrid FindGrid(DependencyObject parent, ProcessView process)
+        {
+            if (parent == null) return null;
+            var grid = parent as DataGrid;
+            if (grid != null && Object.ReferenceEquals(grid.DataContext, process)) return grid;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) {
+                var found = FindGrid(VisualTreeHelper.GetChild(parent, i), process); if (found != null) return found;
+            }
+            return null;
+        }
+        private void SetFilters(string text)
+        {
+            changingFilters = true;
+            try {
+                Element<TextBox>("SearchBox").Text = text; searchTimer.Stop(); search = text.Trim();
+                filter = timeFilter = 0;
+                Element<ComboBox>("FilterBox").SelectedIndex = 0; Element<ComboBox>("TimeFilterBox").SelectedIndex = 0;
+            } finally { changingFilters = false; }
+            RefreshFilter(true);
         }
         private void UpdateResult()
         {
             int count = visibleApps.Count;
-            bool filtered = search.Length > 0 || filter != 0;
-            SetText("ResultText", hasSnapshot ? count + " 个应用" + (filtered ? " · 已筛选" : " · 列表顺序保持稳定") : "正在发现应用…");
+            bool filtered = search.Length > 0 || filter != 0 || timeFilter != 0;
+            SetText("ResultText", hasSnapshot ? matchedEndpoints + " 个" + (filtered ? "匹配" : "") + "端点 · " + count + " 个应用" : "正在发现应用…");
             bool showEmpty = !hasSnapshot || count == 0;
             Element<StackPanel>("EmptyPanel").Visibility = showEmpty ? Visibility.Visible : Visibility.Collapsed;
             string title, description; Geometry glyph;
@@ -143,7 +184,7 @@ namespace NetPeek
             } else if (!hasSnapshot) {
                 title = "正在读取本机连接…"; description = "正在获取 Windows 提供的应用与端点信息。"; glyph = EmptyGlyph;
             } else if (filtered) {
-                title = "没有找到匹配的应用"; description = "换个关键词，或清除筛选查看全部应用。"; glyph = SearchGlyph;
+                title = "没有找到匹配的端点"; description = "换个关键词或时间范围，也可以清空筛选。"; glyph = SearchGlyph;
             } else {
                 title = "这里暂时很安静"; description = "发现网络端点后，应用会自动出现在这里。"; glyph = EmptyGlyph;
             }
@@ -224,25 +265,71 @@ namespace NetPeek
             var button = e.OriginalSource as Button ?? e.Source as Button; if (button == null) return;
             switch (button.Name) {
                 case "ClearSearchButton": case "ResetFiltersButton":
-                    Element<TextBox>("SearchBox").Clear(); searchTimer.Stop(); search = "";
-                    filter = 0; Element<ComboBox>("FilterBox").SelectedIndex = 0; RefreshFilter(); Element<TextBox>("SearchBox").Focus(); break;
+                    SetFilters(""); Element<TextBox>("SearchBox").Focus(); break;
                 case "PauseButton": TogglePause(); break;
                 case "RetryButton": collection.Request(); Notice("已请求重新采集"); break;
-                case "InfoButton": case "CompactInfoButton": Element<Border>("InfoPanel").Visibility = Element<Border>("InfoPanel").Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; break;
-                case "CloseInfoButton": Element<Border>("InfoPanel").Visibility = Visibility.Collapsed; break;
+                case "InfoButton": case "CompactInfoButton":
+                    if (infoWindow != null) infoWindow.Close();
+                    else { infoWindow = DetailWindows.Create(window, "数据说明", DetailWindows.HelpText); infoWindow.Owner = window; infoWindow.Closed += delegate { infoWindow = null; }; infoWindow.Show(); }
+                    break;
+                case "WarningDetailsButton":
+                    if (warningWindow != null) warningWindow.Close();
+                    warningWindow = DetailWindows.Create(window, "采集信息", "打开时的提示（" + DateTime.Now.ToString("HH:mm:ss") + "）：\n\n" + Element<TextBlock>("WarningText").Text);
+                    warningWindow.Owner = window; warningWindow.Closed += delegate { warningWindow = null; }; warningWindow.Show(); break;
                 case "TrayButton": case "CompactTrayButton": window.Hide(); break;
                 case "ExitButton": case "CompactExitButton": window.Close(); break;
             }
             if ((string)button.Tag == "CopyPath") { var app = button.DataContext as ApplicationView; if (app != null && !String.IsNullOrEmpty(app.Path)) Copy(app.Path); else Notice("此应用的路径未知，无法复制"); }
             if ((string)button.Tag == "CopyEndpoint") { var endpoint = button.DataContext as EndpointView; if (endpoint != null) Copy(endpoint.CopyText); }
+            if ((string)button.Tag == "CopyMenu") { var endpoint = button.DataContext as EndpointView; if (endpoint != null) ShowCopyMenu(button, endpoint); }
+            if ((string)button.Tag == "ShowAppEndpoints") {
+                var app = button.DataContext as ApplicationView;
+                if (app != null) SetFilters(app.Path ?? app.Processes[0].Identity.ProcessId.ToString());
+            }
         }
-        private async void Copy(string text)
+        private static EndpointView FindEndpoint(DependencyObject item, out FrameworkElement target)
+        {
+            target = null;
+            while (item != null) {
+                var element = item as FrameworkElement;
+                if (element != null) {
+                    var endpoint = element.DataContext as EndpointView;
+                    if (endpoint == null && element is DataGrid) endpoint = ((DataGrid)element).SelectedItem as EndpointView;
+                    if (endpoint != null) { target = element; return endpoint; }
+                }
+                item = item is Visual ? VisualTreeHelper.GetParent(item) : LogicalTreeHelper.GetParent(item);
+            }
+            return null;
+        }
+        private ContextMenu CreateCopyMenu(EndpointView endpoint)
+        {
+            // Freeze the values when the menu opens, including the observed time.
+            // A refresh while choosing an action cannot silently change what is copied.
+            var menu = new ContextMenu { FontFamily = window.FontFamily, FontSize = 12, Foreground = window.Foreground };
+            string local = endpoint.Local, remote = endpoint.CanCopyRemote ? endpoint.Remote : null, details = endpoint.DetailsText;
+            var copyLocal = new MenuItem { Header = "复制本地端点" };
+            copyLocal.Click += delegate { Copy(local); }; menu.Items.Add(copyLocal);
+            var copyRemote = new MenuItem { Header = remote != null ? "复制远端端点" : endpoint.Record.Protocol == "UDP" ? "远端未知 · UDP 系统表不提供" : "远端不可用 · 此端点没有远端", IsEnabled = remote != null };
+            copyRemote.Click += delegate { if (remote != null) Copy(remote); }; menu.Items.Add(copyRemote);
+            menu.Items.Add(new Separator());
+            var copyDetails = new MenuItem { Header = "复制完整记录" };
+            copyDetails.Click += delegate { Copy(details, "已复制完整记录（含观察时间）"); }; menu.Items.Add(copyDetails);
+            return menu;
+        }
+        private void ShowCopyMenu(FrameworkElement target, EndpointView endpoint)
+        {
+            if (endpointMenu != null) endpointMenu.IsOpen = false;
+            endpointMenu = CreateCopyMenu(endpoint);
+            endpointMenu.PlacementTarget = target; endpointMenu.Placement = PlacementMode.Bottom;
+            endpointMenu.IsOpen = true;
+        }
+        private async void Copy(string text, string confirmation = null)
         {
             for (int attempt = 0; attempt < 4 && !disposed; attempt++) {
-                try { Clipboard.SetText(text); Notice("已复制：" + text); return; }
+                try { Clipboard.SetText(text); Notice(confirmation ?? "已复制：" + text); return; }
                 catch (System.Runtime.InteropServices.COMException) {
                     // Some clipboard managers accept the data but temporarily block OLE flush.
-                    try { if (Clipboard.GetText() == text) { Notice("已复制：" + text); return; } } catch (System.Runtime.InteropServices.COMException) { }
+                    try { if (Clipboard.GetText() == text) { Notice(confirmation ?? "已复制：" + text); return; } } catch (System.Runtime.InteropServices.COMException) { }
                 }
                 await Task.Delay(25 * (attempt + 1));
             }
@@ -256,16 +343,22 @@ namespace NetPeek
         }
         private void KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.Apps || e.Key == Key.F10 && Keyboard.Modifiers == ModifierKeys.Shift) {
+                FrameworkElement target; var endpoint = FindEndpoint(Keyboard.FocusedElement as DependencyObject, out target);
+                if (endpoint != null) { ShowCopyMenu(target, endpoint); e.Handled = true; return; }
+            }
+            if (e.Key == Key.Enter && Keyboard.FocusedElement == Element<TextBox>("SearchBox")) {
+                searchTimer.Stop(); search = Element<TextBox>("SearchBox").Text.Trim(); RefreshFilter(true); e.Handled = true; return;
+            }
             if (Keyboard.Modifiers == ModifierKeys.Control) {
                 if (e.Key == Key.F) { Element<TextBox>("SearchBox").Focus(); Element<TextBox>("SearchBox").SelectAll(); e.Handled = true; }
                 else if (e.Key == Key.P) { TogglePause(); e.Handled = true; }
                 else if (e.Key == Key.C && !(Keyboard.FocusedElement is TextBox)) {
-                    DependencyObject item = Keyboard.FocusedElement as DependencyObject;
-                    while (item != null && !(item is DataGrid)) item = VisualTreeHelper.GetParent(item);
-                    if (item is DataGrid) { var endpoint = ((DataGrid)item).SelectedItem as EndpointView; if (endpoint != null) { Copy(endpoint.CopyText); e.Handled = true; } }
+                    FrameworkElement target; var endpoint = FindEndpoint(Keyboard.FocusedElement as DependencyObject, out target);
+                    if (endpoint != null) { Copy(endpoint.CopyText); e.Handled = true; }
                 }
             } else if (e.Key == Key.F5) { collection.Request(); Notice(paused ? "后台已请求刷新；画面仍处于暂停状态" : "已请求重新采集"); e.Handled = true; }
-            else if (e.Key == Key.Escape) { Element<TextBox>("SearchBox").Clear(); Element<Border>("InfoPanel").Visibility = Visibility.Collapsed; }
+            else if (e.Key == Key.Escape) { Element<TextBox>("SearchBox").Clear(); if (infoWindow != null) infoWindow.Close(); }
         }
         private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Resume) OnUI(delegate { collection.Request(); UpdateStatus(); }); }
         private void WriteMetrics()
@@ -288,6 +381,8 @@ namespace NetPeek
             if (disposed) return; disposed = true;
             SystemEvents.PowerModeChanged -= PowerChanged;
             if (renderTimer != null) renderTimer.Stop(); if (searchTimer != null) searchTimer.Stop();
+            if (endpointMenu != null) endpointMenu.IsOpen = false;
+            if (infoWindow != null) infoWindow.Close(); if (warningWindow != null) warningWindow.Close();
             if (collection != null) collection.Dispose();
             iconCache.Dispose();
             if (tray != null) { tray.Visible = false; if (tray.ContextMenuStrip != null) tray.ContextMenuStrip.Dispose(); tray.Dispose(); }

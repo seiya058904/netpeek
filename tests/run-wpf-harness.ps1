@@ -1,7 +1,7 @@
 ﻿param(
     [Parameter(Mandatory=$true)][string]$Executable,
     [Parameter(Mandatory=$true)][string]$OutputDirectory,
-    [ValidateSet('benchmark','gui','dpi')][string]$Mode='benchmark',
+    [ValidateSet('benchmark','gui','dpi','clipboard')][string]$Mode='benchmark',
     [ValidateRange(5,120)][int]$SampleSeconds=15,
     [ValidateRange(1,5)][int]$Runs=3,
     [int]$FixtureProcessId=0,
@@ -16,10 +16,11 @@ $bin=Join-Path $PSScriptRoot 'bin'
 New-Item -ItemType Directory -Force -Path $bin | Out-Null
 $harness=Join-Path $bin 'WpfHarness.exe'
 $references=@('System.dll','System.Core.dll','System.Web.Extensions.dll','System.Xaml.dll','WPF\WindowsBase.dll','WPF\PresentationCore.dll','WPF\PresentationFramework.dll') | ForEach-Object { '/reference:'+(Join-Path $framework $_) }
-$inputFingerprint=('winexe-v1-'+(Get-FileHash (Join-Path $PSScriptRoot 'WpfHarness.cs')).Hash+(Get-FileHash (Join-Path $PSScriptRoot 'NetPeekFixture.cs')).Hash)
+$manifest=Join-Path (Split-Path -Parent $PSScriptRoot) 'src\NetPeek.App\app.manifest'
+$inputFingerprint=('winexe-v3-'+(Get-FileHash (Join-Path $PSScriptRoot 'WpfHarness.cs')).Hash+(Get-FileHash (Join-Path $PSScriptRoot 'ClipboardWorkflow.cs')).Hash+(Get-FileHash (Join-Path $PSScriptRoot 'NetPeekFixture.cs')).Hash+(Get-FileHash $manifest).Hash)
 $fingerprintPath=Join-Path $bin 'WpfHarness.inputs.sha256'
 if(-not (Test-Path -LiteralPath $harness) -or -not (Test-Path -LiteralPath $fingerprintPath) -or (Get-Content -LiteralPath $fingerprintPath -Raw -Encoding UTF8).Trim() -ne $inputFingerprint) {
-& (Join-Path $framework 'csc.exe') /nologo /target:winexe /platform:x64 /optimize+ /langversion:5 /warnaserror+ "/out:$harness" $references (Join-Path $PSScriptRoot 'WpfHarness.cs')
+& (Join-Path $framework 'csc.exe') /nologo /target:winexe /platform:x64 /optimize+ /langversion:5 /warnaserror+ "/win32manifest:$manifest" "/out:$harness" $references (Join-Path $PSScriptRoot 'WpfHarness.cs') (Join-Path $PSScriptRoot 'ClipboardWorkflow.cs')
 if($LASTEXITCODE -ne 0) {throw 'Harness compilation failed.'}
 & (Join-Path $framework 'csc.exe') /nologo /target:exe /platform:x64 /optimize+ /langversion:5 /warnaserror+ ('/out:'+(Join-Path $bin 'NetPeekFixture.exe')) ('/win32icon:'+(Join-Path (Split-Path -Parent $PSScriptRoot) 'assets\NetPeek.ico')) (Join-Path $PSScriptRoot 'NetPeekFixture.cs')
 if($LASTEXITCODE -ne 0) {throw 'Fixture compilation failed.'}

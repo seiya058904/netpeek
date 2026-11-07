@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/seiya058904/netpeek/releases/tag/v0.1.1"><img alt="Release v0.1.1" src="https://img.shields.io/badge/release-v0.1.1-28684F?style=flat-square" /></a>
+  <a href="https://github.com/seiya058904/netpeek/releases/tag/v0.2.0"><img alt="Release v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-28684F?style=flat-square" /></a>
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-486650?style=flat-square" />
   <img alt="Native WPF" src="https://img.shields.io/badge/native-WPF-6A8071?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL 3.0 or later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-7A8872?style=flat-square" /></a>
@@ -40,7 +40,8 @@
   <img src="docs/screenshots/0.1.1/overview.png" width="100%" alt="NetPeek's Simplified Chinese interface, with network endpoints grouped by application" />
 </p>
 <p align="center">
-  <sub>Final v0.1.1 EXE · Live local sampling · Offscreen rendering of real WPF controls.<br />
+  <sub>Illustrative v0.1.1 previews; v0.2.0 adds the endpoint workflows described below.<br />
+  Live local sampling · Offscreen rendering of real WPF controls.<br />
   These previews are not physical-desktop or high-DPI acceptance screenshots.</sub>
 </p>
 
@@ -93,13 +94,13 @@ This view uses controlled loopback connections. Full IPv6 addresses can be inspe
 2. **Extract the whole folder** and open **NetPeek.exe**. No installer or administrator privileges are needed.
 3. **Explore an app**, expand its processes and endpoints, then search by name, PID, IP, port or protocol and copy the address you need.
 
-### Choose your download · v0.1.1
+### Choose your download · v0.2.0
 
 | Asset | What is inside |
 | --- | --- |
-| **[Windows x64 portable ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.1.1/NetPeek_0.1.1_windows_x64.zip)** · 1.22 MiB | The app, corresponding source code and licenses |
-| [Source ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.1.1/NetPeek_0.1.1_source.zip) | Corresponding source, build scripts, tests and documentation |
-| [SHA256SUMS.txt](https://github.com/seiya058904/netpeek/releases/download/v0.1.1/SHA256SUMS.txt) | Checksums for the release downloads |
+| **[Windows x64 portable ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/NetPeek_0.2.0_windows_x64.zip)** | The app, corresponding source code and licenses |
+| [Source ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/NetPeek_0.2.0_source.zip) | Corresponding source, build scripts, tests and documentation |
+| [SHA256SUMS.txt](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/SHA256SUMS.txt) | Checksums for the release downloads |
 
 | Before you open it | Requirement or status |
 | --- | --- |
@@ -120,10 +121,12 @@ This view uses controlled loopback connections. Full IPv6 addresses can be inspe
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl+F` / `Ctrl+P` | Search / pause or resume the display |
-| `F5` / `Esc` | Request a sample / clear search and collapse help |
+| `F5` / `Esc` | Request a sample / clear search or close the focused detail window |
 | `Tab` / `Shift+Tab` | Move through controls |
 | `Space` / `Enter` | Expand or collapse the focused entry |
 | `Ctrl+C` | Copy the selected endpoint; text fields keep normal copy behavior |
+| `Shift+F10` | Open the selected endpoint's copy menu |
+| `Enter` in search | Locate the first matching endpoint |
 
 </details>
 
@@ -158,6 +161,17 @@ Normal use writes no connection logs. An unhandled exception overwrites `%LOCALA
 
 **C# / WPF · .NET Framework 4.8 · Windows IP Helper API**
 
+### Endpoint workflow improvements · v0.2.0
+
+Version 0.2.0 adds the following workflows. The preview images above remain clearly labelled v0.1.1 examples.
+
+- **Find the endpoint:** Search filters the process and endpoint details, not just application cards. App names and paths match their application's endpoints; a full PID matches a process; IP, port and protocol searches match individual endpoints. State and time conditions must match the same endpoint. Enter locates the first result; later samples preserve retained rows and user expansion.
+- **Choose the observation period:** Select all observations (the default), the current snapshot, or history from the previous 60 seconds. Historical state means the last observed state. Result counts describe matching endpoints; the top counters always describe the whole-machine snapshot. “查看该应用全部端点” resets the state/time filters and searches that application's path or PID to restore its full context.
+- **Copy the detail you need:** The arrow beside Copy, a row's right-click menu, or `Shift+F10` offers local endpoint, remote endpoint and complete-record copying. UDP and listeners have no available remote-copy action. Complete records include identity, both endpoints, current/history status and a dated observation time. Menu values are captured when the menu opens. Text fields retain ordinary copy behavior.
+- **Keep the list usable:** Narrow windows place state/time filters below search. Help and full warning details open in separate, nonmodal windows; long warnings stay on one line in the main window. Closing a detail window or pressing Escape leaves the main window open.
+
+Pause freezes the data used by search, filters and copying; resuming applies the latest complete snapshot. These changes do not add traffic capture, network requests, persistent connection logs or dependencies.
+
 Build from the repository root using the system-installed .NET Framework `csc.exe`. No additional SDK, NuGet, npm or Python is required. Use Windows PowerShell 5.1 or PowerShell 7:
 
 ```powershell
@@ -175,6 +189,7 @@ Build from the repository root using the system-installed .NET Framework `csc.ex
 .\tests\run-layout-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
 .\tests\run-controller-state-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
 .\tests\IntegrationTests.ps1
+.\tests\run-filter-performance.ps1 -OutputPath .\artifacts\filter-performance.json
 .\build.ps1 -Package -SkipBuild
 ```
 
@@ -186,6 +201,14 @@ Explicit socket checks may trigger a Windows Firewall prompt. Normal NetPeek use
 .\tests\IntegrationTests.ps1 -LiveSockets -StressConnections 256 -ExternalHost github.com
 .\scripts\Measure-NetPeek.ps1
 ```
+
+The explicit clipboard workflow opens owned loopback sockets, runs the actual application entry point, invokes its rendered controls and compares the Windows clipboard with expected values. It preserves clipboard formats in memory and restores them before the window closes; a newer external clipboard is left untouched. Avoid copying unrelated content while running this check:
+
+```powershell
+.\tests\run-wpf-harness.ps1 -Executable .\dist\NetPeek\NetPeek.exe -Mode clipboard -OutputDirectory .\artifacts\clipboard-check
+```
+
+The same harness supports `gui`, `dpi` and `benchmark` modes. GUI and benchmark modes use the PID from the explicit loopback fixture in `tests/Start-EndpointLoad.ps1`; see the [v0.2.0 validation record](docs/VALIDATION_0.2.0.md) for scopes and performance comparisons. The harness embeds the product's DPI manifest. Its timings include test-host overhead and are not standalone process footprints.
 
 Diagnostic commands write reports only when an output path is explicitly supplied:
 
@@ -200,14 +223,17 @@ If local execution policy blocks a script, `powershell.exe -NoProfile -Execution
 
 </details>
 
-### Recorded validation · v0.1.1
+### Recorded validation · v0.2.0
 
-**The final v0.1.1 EXE passed 125 targeted checks and 70 integration checks.** Full interaction, high-DPI and three-scenario performance records come from a candidate built before the final column-width patch; the final build's additional retesting is incomplete. Windows 10, multiple monitors, adapter changes and sleep/resume also remain unverified. These records do not establish a blanket compatibility or performance guarantee.
+**The final v0.2.0 EXE passed 181 targeted checks, 65 integration checks, 26 clipboard checks and 33 GUI checks.** Clipboard verification uses real owned loopback endpoints, rendered control routes and Windows clipboard equality. GUI coverage includes selection/scroll retention across live samples, pause/resume, tray activation, history expiry and icon reappearance. One search-focus observation remains explicitly unverified.
+
+The same-machine performance comparison uses the same test host for both releases and three repeated samples per scene; its overhead is included. Actual windows were observed at 96 DPI, with compact geometry and DPI conversion checked separately in simulation. Windows 10, real high-DPI/multiple-monitor transitions, adapter changes, sleep/resume and full external keyboard/screen-reader acceptance remain unverified.
 
 | Record | What you will find |
 | --- | --- |
 | [Changelog](docs/CHANGELOG.md) | Changes between versions |
-| [v0.1.1 validation and performance](docs/VALIDATION_0.1.1.md) | Measured results, capture conditions and unfinished acceptance work |
+| [v0.2.0 validation and performance](docs/VALIDATION_0.2.0.md) | Final EXE checks, clipboard results, performance comparison and limits |
+| [v0.1.1 validation and performance](docs/VALIDATION_0.1.1.md) | Historical release evidence and its original limitations |
 | [v0.1.0 archive](docs/VALIDATION.md) | Earlier validation evidence |
 | [Upstream audit](docs/UPSTREAM_AUDIT.md) | Review of the original project's behavior and implementation |
 

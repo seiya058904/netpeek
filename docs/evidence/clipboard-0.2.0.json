@@ -1,0 +1,141 @@
+{
+  "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+  "HarnessSha256": "004A64D8CA29FA22EF4A63985B5FF3D8C3764A5A29B4D5A088FF6A01DB6940A4",
+  "Passed": true,
+  "PassedChecks": 26,
+  "UnverifiedObservations": 0,
+  "OwnWindowDpi": 96,
+  "Method": "Actual product Program.Main, native sampling and rendered WPF control events in a test-owned process. Clipboard compares only owned loopback data; contents never published. Not an external mouse/keyboard automation test.",
+  "Checks": [
+    {
+      "Passed": true,
+      "Name": "Live owned fixture isolated",
+      "Detail": "IPv4/IPv6 TCP listeners and pairs plus one IPv4 UDP binding; exact PID search uses real collection."
+    },
+    {
+      "Passed": true,
+      "Name": "IPv4 quick copy reaches clipboard",
+      "Detail": "Exact independent loopback endpoint expectation; IPv6 brackets retained."
+    },
+    {
+      "Passed": true,
+      "Name": "Menu local copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Menu remote copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Sampling continues with copy menu open",
+      "Detail": "A newer real collector observation arrived before choosing full copy."
+    },
+    {
+      "Passed": true,
+      "Name": "Full copy freezes menu-open observation",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Full record carries provenance",
+      "Detail": "Independent endpoint, identity, current-state and timestamp checks; private text omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "IPv6 quick copy reaches clipboard",
+      "Detail": "Exact independent loopback endpoint expectation; IPv6 brackets retained."
+    },
+    {
+      "Passed": true,
+      "Name": "Menu local copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Menu remote copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Sampling continues with copy menu open",
+      "Detail": "A newer real collector observation arrived before choosing full copy."
+    },
+    {
+      "Passed": true,
+      "Name": "Full copy freezes menu-open observation",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Full record carries provenance",
+      "Detail": "Independent endpoint, identity, current-state and timestamp checks; private text omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Unavailable remote action disabled",
+      "Detail": "Real listener/UDP row cannot offer an invented remote endpoint."
+    },
+    {
+      "Passed": true,
+      "Name": "Listener/UDP local copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Unavailable remote action disabled",
+      "Detail": "Real listener/UDP row cannot offer an invented remote endpoint."
+    },
+    {
+      "Passed": true,
+      "Name": "Listener/UDP local copy",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Closed UDP becomes history",
+      "Detail": "Real socket closed; native collector and time filter removed it from current results."
+    },
+    {
+      "Passed": true,
+      "Name": "History filter isolates closed binding",
+      "Detail": "Active TCP endpoints remain in the store but not this filtered grid."
+    },
+    {
+      "Passed": true,
+      "Name": "Historical full record reaches clipboard",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Historical copy remains explicit",
+      "Detail": "No current-connection claim or invented UDP remote."
+    },
+    {
+      "Passed": true,
+      "Name": "Right-click copy reaches clipboard",
+      "Detail": "Actual product menu action wrote the exact expected text to the Windows clipboard; values omitted."
+    },
+    {
+      "Passed": true,
+      "Name": "Help is nonmodal",
+      "Detail": "The actual owned help window is open without disabling the main window."
+    },
+    {
+      "Passed": true,
+      "Name": "Escape closes only help",
+      "Detail": "Actual detail-window key handler keeps main window alive."
+    },
+    {
+      "Passed": true,
+      "Name": "Warning details contain the full message",
+      "Detail": "Paused snapshot warning opens as selectable full text."
+    },
+    {
+      "Passed": true,
+      "Name": "Original clipboard restored",
+      "Detail": "Every materialized original format compared equal; contents stayed in memory only."
+    }
+  ]
+}

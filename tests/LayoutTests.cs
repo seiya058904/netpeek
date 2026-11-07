@@ -66,7 +66,6 @@ internal static class LayoutTests
             ListBox list = (ListBox)window.FindName("AppList");
             list.ItemsSource = new[] { Fixture() };
             ((FrameworkElement)window.FindName("EmptyPanel")).Visibility = Visibility.Collapsed;
-            ((FrameworkElement)window.FindName("InfoPanel")).Visibility = Visibility.Visible;
             ((FrameworkElement)window.FindName("WarningPanel")).Visibility = Visibility.Visible;
             ((TextBlock)window.FindName("WarningText")).Text = String.Join(" ", Enumerable.Repeat("部分端点表读取失败，保留上次完整快照；连接归属需要核验。", 12));
             Arrange(window, size);
@@ -78,7 +77,10 @@ internal static class LayoutTests
             Console.WriteLine("MEASURE " + label + " appList=" + list.ActualWidth.ToString("F1") + "x" + list.ActualHeight.ToString("F1") + " dataGrid=" + grid.ActualWidth.ToString("F1") + " frozen=" + grid.FrozenColumnCount);
             Console.WriteLine("COLUMNS " + label + " " + String.Join(", ", grid.Columns.Select(c => c.Header + "=" + c.ActualWidth.ToString("F1"))));
             Render(window, label);
-            Check(list.ActualHeight >= 70, label + " keeps at least 70 DIPs of application list with info and warning panels open");
+            Check(list.ActualHeight >= 70, label + " keeps at least 70 DIPs of application list with a long warning; help uses a separate window");
+            Check(window.FindName("InfoPanel") == null && ((TextBlock)window.FindName("WarningText")).TextWrapping == TextWrapping.NoWrap && ((Button)window.FindName("WarningDetailsButton")).ActualWidth >= 30, label + " full help and warning details do not consume the main list height");
+            var search = (TextBox)window.FindName("SearchBox"); var time = (ComboBox)window.FindName("TimeFilterBox");
+            Check(search.ActualWidth >= 140 && time.ActualWidth >= 120, label + " search and time range retain usable widths");
             Check(list.ActualWidth > 250 && grid.ActualWidth > 250, label + " actual endpoint content has usable width");
             Check(grid.Columns.Count == 7 && (string)grid.Columns[0].Header == "远端 IP : 端口" && (string)grid.Columns[1].Header == "状态" && (string)grid.Columns[2].Header == "复制", label + " uses actual remote/status/copy leading columns");
             double frozenWidth = grid.Columns.Take(3).Sum(c => c.ActualWidth);
@@ -93,6 +95,12 @@ internal static class LayoutTests
             if (size.Width < 700) {
                 Check(((FrameworkElement)window.FindName("RailPanel")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("CompactActions")).Visibility == Visibility.Visible, label + " retains compact actions without consuming a sidebar column");
             }
+            ScrollViewer outer = Descendants<ScrollViewer>(list).First();
+            outer.ScrollToVerticalOffset(outer.VerticalOffset + grid.TranslatePoint(new Point(), list).Y);
+            Arrange(window, size);
+            DataGridCell firstCopy = Descendants<DataGridCell>(grid).First(c => c.Column == grid.Columns[2]);
+            Point rowTop = firstCopy.TranslatePoint(new Point(), list), rowBottom = firstCopy.TranslatePoint(new Point(0, firstCopy.ActualHeight), list);
+            Check(rowTop.Y >= -1 && rowBottom.Y <= list.ActualHeight + 1, label + " scrolling the main list exposes a complete endpoint copy cell within its viewport");
             // Exercise the actual grid's production Loaded/SizeChanged hooks at a
             // viewport smaller than its leading columns; all columns must scroll.
             grid.Width = 280;
@@ -108,7 +116,25 @@ internal static class LayoutTests
             if (copy == null) throw new Exception(label + ": copy column did not realize after ScrollIntoView");
             Point copyLeft = copy.TranslatePoint(new Point(), grid), copyRight = copy.TranslatePoint(new Point(copy.ActualWidth, 0), grid);
             Check(copyLeft.X >= -1 && copyRight.X <= grid.ActualWidth + 1 && Descendants<Button>(copy).Any(), label + " copy action becomes fully reachable after narrow horizontal scrolling");
+            Check(Descendants<Button>(copy).Any(b => (string)b.Tag == "CopyMenu"), label + " explicit copy menu remains reachable alongside quick copy");
+            DetailWindowSize(window, size);
         } finally { window.Close(); Pump(); }
+    }
+    private static void DetailWindowSize(Window owner, Size size)
+    {
+        Type details = product.GetType("NetPeek.DetailWindows", true);
+        string help = (string)details.GetField("HelpText", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue();
+        Window dialog = (Window)details.GetMethod("Create", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { owner, "数据说明", help });
+        try {
+            Arrange(dialog, new Size(dialog.Width, dialog.Height));
+            TextBox text = Descendants<TextBox>((DependencyObject)dialog.Content).Single();
+            Button close = Descendants<Button>((DependencyObject)dialog.Content).Single();
+            Check(dialog.Width <= size.Width && dialog.Height <= size.Height && text.ActualHeight >= 100 && text.Text == help && text.IsReadOnly && text.VerticalScrollBarVisibility == ScrollBarVisibility.Auto,
+                size + " separate help fits the owner and retains a readable scrollable full text viewport");
+            FrameworkElement root = (FrameworkElement)dialog.Content;
+            Point edge = close.TranslatePoint(new Point(close.ActualWidth, close.ActualHeight), root);
+            Check(edge.X <= root.ActualWidth + 1 && edge.Y <= root.ActualHeight + 1, size + " help close action stays inside its viewport");
+        } finally { dialog.Close(); Pump(); }
     }
     private static object Fixture()
     {

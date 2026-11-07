@@ -1,0 +1,181 @@
+{
+  "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+  "HarnessSha256": "5811A1540900FA7C8797D30213079A5DAA57E692B77A5DF2105235CD0BB1EE4C",
+  "Passed": true,
+  "PassedChecks": 33,
+  "UnverifiedObservations": 1,
+  "OwnWindowDpi": 96,
+  "Method": "Actual product Program.Main, native sampling and rendered WPF control events in a test-owned process. Clipboard compares only owned loopback data; contents never published. Not an external mouse/keyboard automation test.",
+  "Checks": [
+    {
+      "Passed": true,
+      "Name": "Warning and help visible",
+      "Detail": "Actual PauseButton and InfoButton routed events on the real 720 by 480 logical window; current help opens separately."
+    },
+    {
+      "Passed": true,
+      "Name": "Minimum-window connection viewport",
+      "Detail": "Actual AppList layout height is at least 70 logical pixels."
+    },
+    {
+      "Passed": true,
+      "Name": "Copy column horizontally reachable",
+      "Detail": "Actual realized endpoint copy button bounds lie within the DataGrid width; this is a layout check, not a mouse-click test."
+    },
+    {
+      "Passed": true,
+      "Name": "Minimum-window measured layout",
+      "Detail": "Actual own-window WPF geometry at the current desktop DPI."
+    },
+    {
+      "Passed": true,
+      "Name": "Real endpoint detail scrolled",
+      "Detail": "Actual selected fixture endpoint brought into view at a nonzero DataGrid vertical offset."
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 1",
+      "Detail": "The actual DataGrid SelectedItem keeps the same real fixture EndpointView object."
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 1",
+      "Detail": "Actual nonzero DataGrid VerticalOffset is unchanged after a newer real endpoint sample."
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 1",
+      "Detail": "Own window foreground and WPF keyboard focus were actually observed."
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 2",
+      "Detail": "The actual DataGrid SelectedItem keeps the same real fixture EndpointView object."
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 2",
+      "Detail": "Actual nonzero DataGrid VerticalOffset is unchanged after a newer real endpoint sample."
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 2",
+      "Detail": "Own window foreground and WPF keyboard focus were actually observed."
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 3",
+      "Detail": "The actual DataGrid SelectedItem keeps the same real fixture EndpointView object."
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 3",
+      "Detail": "Actual nonzero DataGrid VerticalOffset is unchanged after a newer real endpoint sample."
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 3",
+      "Detail": "Own window foreground and WPF keyboard focus were actually observed."
+    },
+    {
+      "Passed": true,
+      "Name": "Keyboard focus retention observation",
+      "Detail": "Physical focus retention is asserted only while both own-window foreground and WPF keyboard focus are actually observed; otherwise unverified."
+    },
+    {
+      "Passed": true,
+      "Name": "Search empty state",
+      "Detail": "Real TextChanged and debounce path."
+    },
+    {
+      "Passed": true,
+      "Name": "Escape restores list",
+      "Detail": "Own-window routed PreviewKeyDown; not external keyboard injection."
+    },
+    {
+      "Passed": null,
+      "Name": "Search keyboard focus observation",
+      "Detail": "OS foreground focus is not guaranteed in this session; this observation is not a Ctrl+F input test."
+    },
+    {
+      "Passed": true,
+      "Name": "Reset filters restores all",
+      "Detail": "Actual reset button when available; older version has no reset control."
+    },
+    {
+      "Passed": true,
+      "Name": "Real endpoint rows materialized",
+      "Detail": "Real WPF binding/expansion path."
+    },
+    {
+      "Passed": true,
+      "Name": "Copy endpoint clipboard equality",
+      "Detail": "Actual routed CopyEndpoint click; compared only the owned loopback endpoint value."
+    },
+    {
+      "Passed": true,
+      "Name": "Pause preserves timestamp",
+      "Detail": "Waited 2.5 seconds with real collector still active."
+    },
+    {
+      "Passed": true,
+      "Name": "Resume updates timestamp",
+      "Detail": "Real subsequent sample applied."
+    },
+    {
+      "Passed": true,
+      "Name": "Tray hide",
+      "Detail": "Actual routed tray button click; same host process remains alive."
+    },
+    {
+      "Passed": true,
+      "Name": "Single-instance activation exit",
+      "Detail": "Second real EXE sees product mutex and returns zero."
+    },
+    {
+      "Passed": true,
+      "Name": "Single-instance restores same window",
+      "Detail": "Product activation event calls real ShowWindow path."
+    },
+    {
+      "Passed": true,
+      "Name": "Unique real-icon fixture appears",
+      "Detail": "Dedicated executable path; normal Windows executable icon loading."
+    },
+    {
+      "Passed": true,
+      "Name": "Icon fixture exits",
+      "Detail": "Graceful owned fixture shutdown."
+    },
+    {
+      "Passed": true,
+      "Name": "App disappears after history retention",
+      "Detail": "Waited 65 seconds after dedicated app exited; no other process uses its path."
+    },
+    {
+      "Passed": true,
+      "Name": "Fixture restarts with new PID",
+      "Detail": "Same executable path, new actual process."
+    },
+    {
+      "Passed": true,
+      "Name": "Reappeared app gets icon on new view",
+      "Detail": "New ApplicationView after 65-second removal has a real non-null icon."
+    },
+    {
+      "Passed": true,
+      "Name": "Eight-process actual endpoint group",
+      "Detail": "Eight real same-path child processes, each with one loopback listener."
+    },
+    {
+      "Passed": true,
+      "Name": "Multi-process details render",
+      "Detail": "Real small multi-process fixture; no 257-process cache-pressure simulation."
+    },
+    {
+      "Passed": true,
+      "Name": "Original clipboard restored",
+      "Detail": "Every materialized original format compared equal; contents stayed in memory only."
+    }
+  ]
+}

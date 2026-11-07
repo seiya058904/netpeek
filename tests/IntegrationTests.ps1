@@ -21,6 +21,12 @@ function Assert-Check([bool]$Condition, [string]$Name, [string]$Detail) {
     Write-Host ('{0} {1}: {2}' -f $(if ($Condition) {'PASS'} else {'FAIL'}), $Name, $Detail)
     if (-not $Condition) { throw $Name + ': ' + $Detail }
 }
+function Convert-ReportUtc($Value) {
+    # PowerShell 7 may deserialize ISO timestamps as DateTime; 5.1 leaves strings.
+    # Never round-trip an existing DateTime through a culture-dependent string.
+    if ($Value -is [DateTime]) { return $Value.ToUniversalTime() }
+    return [DateTimeOffset]::Parse([string]$Value, [Globalization.CultureInfo]::InvariantCulture).UtcDateTime
+}
 function Get-Snapshot([string]$Label) {
     $path = Join-Path $OutputDirectory ($runId + '_' + $Label + '.json')
     $started = [DateTime]::UtcNow
@@ -28,7 +34,7 @@ function Get-Snapshot([string]$Label) {
     if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'Owned snapshot process exceeded 30 seconds.' }
     Assert-Check ($p.ExitCode -eq 0) ($Label + ' complete exit') ('ExitCode=' + $p.ExitCode)
     $result = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-Check ($result.ProcessId -eq $p.Id -and [DateTime]::Parse($result.StartedAtUtc).ToUniversalTime() -ge $started.AddSeconds(-1) -and [DateTime]::Parse($result.ReportWrittenAtUtc).ToUniversalTime() -le [DateTime]::UtcNow) ($Label + ' report identity/time') ('PID=' + $p.Id)
+    Assert-Check ($result.ProcessId -eq $p.Id -and (Convert-ReportUtc $result.StartedAtUtc) -ge $started.AddSeconds(-1) -and (Convert-ReportUtc $result.ReportWrittenAtUtc) -le [DateTime]::UtcNow) ($Label + ' report identity/time') ('PID=' + $p.Id)
     Assert-Check ($result.Success -is [bool] -and $result.Success -and $result.IsComplete -is [bool] -and $result.IsComplete) ($Label + ' all tables') (($result.Warnings | Out-String).Trim())
     return $result
 }
@@ -132,14 +138,14 @@ function Test-GuiSmoke([string]$Label, [string]$Fault, [int]$ExpectedExit, [bool
     Assert-Check (Test-Path -LiteralPath $smokePath) ($Label + ' evidence present') $smokePath
     $evidence = Get-Content -LiteralPath $smokePath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Check ($evidence.RunId -eq $invocation -and $evidence.ProcessId -eq $gui.Id) ($Label + ' invocation identity') ('RunId=' + $invocation + '; PID=' + $gui.Id)
-    $reportStarted = [DateTime]::Parse($evidence.StartedAtUtc).ToUniversalTime()
-    $reportWritten = [DateTime]::Parse($evidence.ReportWrittenAtUtc).ToUniversalTime()
+    $reportStarted = Convert-ReportUtc $evidence.StartedAtUtc
+    $reportWritten = Convert-ReportUtc $evidence.ReportWrittenAtUtc
     Assert-Check ($reportStarted -ge $started.AddSeconds(-1) -and $reportStarted -le $finished -and $reportWritten -ge $reportStarted -and $reportWritten -le $finished) ($Label + ' report freshness') 'Started/written timestamps belong to this invocation.'
     Assert-Check ($evidence.Completed -is [bool] -and $evidence.Completed -and $evidence.ExitCode -eq $ExpectedExit) ($Label + ' final report') ('Completed=' + $evidence.Completed + '; ExitCode=' + $evidence.ExitCode)
     $expectedSuccess = $ExpectedExit -eq 0 -and $ExpectedSnapshot
     Assert-Check ($evidence.Success -is [bool] -and $evidence.Success -eq $expectedSuccess -and $evidence.HasValidSnapshot -is [bool] -and $evidence.HasValidSnapshot -eq $ExpectedSnapshot) ($Label + ' explicit success') ('Success=' + $evidence.Success + '; HasValidSnapshot=' + $evidence.HasValidSnapshot)
     if ($ExpectedSnapshot) {
-        $lastSnapshot = [DateTime]::Parse($evidence.LastSuccessfulSnapshotUtc).ToUniversalTime()
+        $lastSnapshot = Convert-ReportUtc $evidence.LastSuccessfulSnapshotUtc
         Assert-Check ($evidence.SamplesApplied -ge 1 -and $evidence.FirstSnapshotMilliseconds -gt 0 -and $lastSnapshot -ge $reportStarted -and $lastSnapshot -le $reportWritten) ($Label + ' valid applied snapshot') ('SamplesApplied=' + $evidence.SamplesApplied + '; endpoints=' + $evidence.EndpointCount)
     } else {
         Assert-Check ($evidence.SamplesApplied -eq 0 -and -not $evidence.LastSuccessfulSnapshotUtc -and $evidence.FirstSnapshotMilliseconds -eq 0 -and $evidence.Error) ($Label + ' capture failure stays failure') 'No complete snapshot was applied; orderly exit remains unsuccessful.'
@@ -247,3 +253,4 @@ try {
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory ($runId + '_results.json')) -Encoding UTF8
 }
 if (-not $report.Passed) { exit 1 }
+exit 0

@@ -1,0 +1,15 @@
+{
+  "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+  "Result": {
+    "Passed": true,
+    "Applications": 40,
+    "Current": 4000,
+    "Historical": 12000,
+    "Samples": 48,
+    "MedianMilliseconds": 5.827100000000001,
+    "P95Milliseconds": 7.0381,
+    "MaximumMilliseconds": 7.1071,
+    "GateP95Milliseconds": 100,
+    "Method": "Actual final EXE display projection over synthetic data; repeated all/history/current/empty queries. Excludes debounce, WPF rendering, native capture and mouse-to-display latency."
+  }
+}

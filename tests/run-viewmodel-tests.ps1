@@ -24,6 +24,7 @@ $testExecutable = Join-Path $output 'ViewModelTests.exe'
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $repo 'src\NetPeek.Core') -Filter '*.cs' | ForEach-Object { $_.FullName })
 $sources += Join-Path $repo 'src\NetPeek.App\CaptureHistory.cs'
 $sources += Join-Path $repo 'src\NetPeek.App\ViewModels.cs'
+$sources += Join-Path $repo 'src\NetPeek.App\EndpointFilter.cs'
 $sources += Join-Path $PSScriptRoot 'ViewModelTests.cs'
 $references = @('/reference:System.dll', '/reference:System.Core.dll', "/reference:$framework\WPF\WindowsBase.dll", "/reference:$framework\WPF\PresentationCore.dll", "/reference:$framework\WPF\PresentationFramework.dll")
 & $compiler /nologo /target:exe /platform:anycpu /optimize+ /warnaserror+ "/out:$testExecutable" $references $sources

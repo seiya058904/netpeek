@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -37,6 +38,23 @@ namespace NetPeek
         public string TimeText { get { return IsCurrent ? "本次快照" : LastSeenUtc.ToLocalTime().ToString("HH:mm:ss"); } }
         public double Opacity { get { return IsCurrent ? 1 : 0.62; } }
         public string CopyText { get { return Record.Protocol == "UDP" || Record.State == "LISTEN" ? Local : Remote; } }
+        public bool CanCopyRemote { get { return Record.Protocol != "UDP" && Record.State != "LISTEN" && !String.IsNullOrEmpty(Record.RemoteAddress); } }
+        public string DetailsText
+        {
+            get {
+                var process = Record.Process;
+                string identity = process.StartTimeUtcTicks > 0 ? "已核验 · 创建于 " + new DateTime(process.StartTimeUtcTicks, DateTimeKind.Utc).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture) : "身份不可核验 · 仅代表本次快照";
+                return String.Join(Environment.NewLine, new[] {
+                    "应用：" + process.Name, "PID：" + process.ProcessId, "进程身份：" + identity,
+                    "路径：" + (String.IsNullOrEmpty(process.Path) ? "未知" : process.Path),
+                    "协议：" + Transport, "本地端点：" + Local, "远端端点：" + Remote,
+                    (IsCurrent ? "状态：" : "最后观察状态：") + StateLabel(Record.State),
+                    "记录：" + (IsCurrent ? "当前快照（以采样时间为准）" : "近期历史（不代表当前连接）"),
+                    (IsCurrent ? "采样时间：" : "最后观察时间：") + LastSeenUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture),
+                    "说明：已建立不代表正在传输；最后观察时间不是准确断开时间。"
+                });
+            }
+        }
         public EndpointView(EndpointRecord record, DateTime time) : this(record, time, record.Key) { }
         internal EndpointView(EndpointRecord record, DateTime time, string displayKey) { Key = displayKey; Record = record; LastSeenUtc = time; current = true; }
         public void Update(EndpointRecord record, DateTime time) { Update(record, time, true); }
@@ -108,6 +126,10 @@ namespace NetPeek
         private bool expanded;
         public bool IsExpanded { get { return expanded; } set { Set(ref expanded, value, "IsExpanded"); } }
         public ObservableCollection<EndpointView> Endpoints { get; private set; }
+        private ObservableCollection<EndpointView> displayedEndpoints;
+        public ObservableCollection<EndpointView> DisplayEndpoints { get { return displayedEndpoints ?? Endpoints; } }
+        private string matchSummary;
+        public string DisplayCountText { get { return matchSummary ?? CountText; } }
         private int currentCount;
         public string CountText { get { return currentCount + " 个当前端点"; } }
         public ProcessView(ProcessIdentity identity) : this(identity, identity.InstanceId) { }
@@ -123,7 +145,14 @@ namespace NetPeek
             if (noteChanged && oldNote != Note) Changed("Note");
             return searchChanged;
         }
-        internal void SetCurrentCount(int count) { if (currentCount != count) { currentCount = count; Changed("CountText"); } }
+        internal void SetCurrentCount(int count) { if (currentCount != count) { currentCount = count; Changed("CountText"); if (matchSummary == null) Changed("DisplayCountText"); } }
+        internal void ShowEndpoints(IList<EndpointView> visible, bool filtered)
+        {
+            if (displayedEndpoints == null) { displayedEndpoints = new ObservableCollection<EndpointView>(); Changed("DisplayEndpoints"); }
+            DisplayCollection.Reconcile(displayedEndpoints, visible);
+            string summary = filtered ? visible.Count + " 个匹配 · 当前 " + visible.Count(e => e.IsCurrent) + " · 历史 " + visible.Count(e => !e.IsCurrent) : null;
+            if (matchSummary != summary) { matchSummary = summary; Changed("DisplayCountText"); }
+        }
         public void NotifyCounts() { SetCurrentCount(Endpoints.Count(x => x.IsCurrent)); }
     }
 
@@ -137,7 +166,7 @@ namespace NetPeek
         private ImageSource icon;
         public ImageSource Icon { get { return icon; } set { Set(ref icon, value, "Icon"); } }
         private bool expanded;
-        public bool IsExpanded { get { return expanded; } set { if (Set(ref expanded, value, "IsExpanded") && value && Processes.Count == 1) Processes[0].IsExpanded = true; } }
+        public bool IsExpanded { get { return expanded; } set { if (Set(ref expanded, value, "IsExpanded") && value && DisplayProcesses.Count == 1) DisplayProcesses[0].IsExpanded = true; } }
         private int established, listening, udp, currentCount, processCount;
         private static readonly Brush ConnectedBrush = FrozenBrush(0xE1, 0xF1, 0xE7);
         private static readonly Brush HistoryBrush = FrozenBrush(0xEF, 0xF0, 0xED);
@@ -151,6 +180,32 @@ namespace NetPeek
         public string Status { get { return established > 0 ? "TCP 已建立" : currentCount == 0 ? "历史出现" : listening > 0 && udp == 0 && currentCount == listening ? "仅监听" : udp > 0 && currentCount == udp ? "UDP 本地端点" : "本地 / 其他状态"; } }
         public Brush StatusBrush { get { return established > 0 ? ConnectedBrush : currentCount == 0 ? HistoryBrush : OtherBrush; } }
         public ObservableCollection<ProcessView> Processes { get; private set; }
+        private ObservableCollection<ProcessView> displayedProcesses;
+        private bool filtered;
+        private int shownCurrent, shownHistory;
+        private string matchSummary;
+        private bool canShowAll;
+        public ObservableCollection<ProcessView> DisplayProcesses { get { return displayedProcesses ?? Processes; } }
+        public string DisplayCountText { get { return filtered ? (shownCurrent + shownHistory).ToString() : CountText; } }
+        public string DisplayCountLabel { get { return filtered ? "匹配端点" : CountLabel; } }
+        public string DisplayStatus { get { return !filtered ? Status : shownCurrent == 0 ? "仅近期历史" : shownHistory > 0 ? "当前 + 历史" : "当前端点"; } }
+        public Brush DisplayStatusBrush { get { return !filtered ? StatusBrush : shownCurrent == 0 ? HistoryBrush : OtherBrush; } }
+        public string MatchSummary { get { return matchSummary; } }
+        public bool CanShowAll { get { return canShowAll; } }
+        internal void ShowProcesses(IList<ProcessView> visible, bool isFiltered, int current, int history)
+        {
+            string oldCount = DisplayCountText, oldLabel = DisplayCountLabel, oldStatus = DisplayStatus;
+            Brush oldBrush = DisplayStatusBrush;
+            if (displayedProcesses == null) { displayedProcesses = new ObservableCollection<ProcessView>(); Changed("DisplayProcesses"); }
+            DisplayCollection.Reconcile(displayedProcesses, visible);
+            filtered = isFiltered; shownCurrent = current; shownHistory = history;
+            Set(ref matchSummary, "显示 " + (current + history) + " 个端点 · 当前 " + current + " · 历史 " + history, "MatchSummary");
+            Set(ref canShowAll, current + history < Processes.Sum(p => p.Endpoints.Count), "CanShowAll");
+            if (oldCount != DisplayCountText) Changed("DisplayCountText");
+            if (oldLabel != DisplayCountLabel) Changed("DisplayCountLabel");
+            if (oldStatus != DisplayStatus) Changed("DisplayStatus");
+            if (!Object.ReferenceEquals(oldBrush, DisplayStatusBrush)) Changed("DisplayStatusBrush");
+        }
         public ApplicationView(ProcessIdentity identity) : this(identity, identity.AppKey) { }
         internal ApplicationView(ProcessIdentity identity, string displayKey) { Key = displayKey; Name = identity.Name; Path = identity.Path; Processes = new ObservableCollection<ProcessView>(); }
         internal bool UpdateMetadata(ProcessIdentity identity)
@@ -182,13 +237,12 @@ namespace NetPeek
             if (oldProcesses != processCount) Changed("Subtitle");
             if (oldStatus != Status) Changed("Status");
             if (!Object.ReferenceEquals(oldBrush, StatusBrush)) Changed("StatusBrush");
+            if (!filtered) {
+                if (oldCurrent != currentCount) { Changed("DisplayCountText"); Changed("DisplayCountLabel"); }
+                if (oldStatus != Status) Changed("DisplayStatus");
+                if (!Object.ReferenceEquals(oldBrush, StatusBrush)) Changed("DisplayStatusBrush");
+            }
             return oldCurrent != currentCount || oldEstablished != established || oldProcesses != processCount || oldStatus != Status;
-        }
-        public bool Matches(string search)
-        {
-            if (String.IsNullOrEmpty(search)) return true;
-            if ((Name + " " + Path).IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            return Processes.Any(p => p.Identity.ProcessId.ToString().Contains(search) || p.Endpoints.Any(e => (e.Local + " " + e.Remote + " " + e.Transport).IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0));
         }
     }
 

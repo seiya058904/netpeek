@@ -1,0 +1,87 @@
+{
+  "Version": "0.2.0",
+  "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+  "ExecutableBytes": 141824,
+  "FinalExecutableChecks": [
+    {
+      "Name": "Final EXE core",
+      "Checks": 20
+    },
+    {
+      "Name": "Final EXE view models",
+      "Checks": 54
+    },
+    {
+      "Name": "Final EXE icon cache",
+      "Checks": 13
+    },
+    {
+      "Name": "Final EXE WPF layout",
+      "Checks": 73
+    },
+    {
+      "Name": "Final EXE controller",
+      "Checks": 21
+    }
+  ],
+  "SourceChecks": {
+    "Core": 28,
+    "IconCache": 13,
+    "ViewModels": 54
+  },
+  "Integration": {
+    "GuiSmoke": true,
+    "ExternalProbe": false,
+    "LiveSockets": true,
+    "PowerShell": "7.6.9",
+    "Checks": 65,
+    "Passed": true
+  },
+  "WindowsPowerShellCompatibility": {
+    "Version": "5.1",
+    "Checks": 9,
+    "Mode": "Passive native-table comparison; no GUI smoke or extra sockets",
+    "Passed": true
+  },
+  "Clipboard": {
+    "Checks": 26,
+    "Passed": true
+  },
+  "Gui": {
+    "Checks": 33,
+    "Passed": true,
+    "UnverifiedObservations": 1
+  },
+  "PerformanceGates": [
+    {
+      "Scenario": "overview",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 10912427,
+      "CpuDelta": -0.010600201524200874,
+      "PrivateBytesDelta": 2171477.3333333284
+    },
+    {
+      "Scenario": "expanded",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 12172774,
+      "CpuDelta": 0.025393382551555238,
+      "PrivateBytesDelta": -2292224.0
+    },
+    {
+      "Scenario": "background",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 12480734,
+      "CpuDelta": 0.012616927366320495,
+      "PrivateBytesDelta": -196608.0
+    }
+  ],
+  "RawEvidence": "Local Git-ignored artifacts/v0.2.0; private paths, PIDs, endpoint tables, screenshots and clipboard contents are excluded from these published summaries.",
+  "Limits": [
+    "Actual desktop window observed at 96 DPI; 100/125/150/200 percent conversions and compact geometry were simulated separately.",
+    "No multi-monitor/DPI transition, Windows 10, sleep/resume, adapter change or full external keyboard/screen-reader acceptance.",
+    "Live resource comparisons include the same test host and sampler; natural system endpoint load is disclosed and can drift."
+  ]
+}

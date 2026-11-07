@@ -21,7 +21,7 @@ internal static class ViewModelTests
     private static List<EndpointView> Endpoints(ConnectionStore store) { return store.Applications.SelectMany(a => a.Processes).SelectMany(p => p.Endpoints).ToList(); }
     public static int Main()
     {
-        try { StableAndGrouping(); DeltaNotifications(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); UnverifiedSlots(); Copies(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
+        try { StableAndGrouping(); DeltaNotifications(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); UnverifiedSlots(); Copies(); EndpointFiltering(); CopyDetails(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
         catch (Exception ex) { Console.Error.WriteLine("FAIL " + ex); return 1; }
     }
     private static void StableAndGrouping()
@@ -136,6 +136,50 @@ internal static class ViewModelTests
         copy[0].Record.State = "CLOSED"; copy[0].Record.Process.Name = "mutated"; copy[0].LastSeenUtc = Epoch.AddYears(1); copy.Clear();
         Observation retained = history.Snapshot().Single();
         Check(retained.Record.State == "ESTABLISHED" && retained.Record.Process.Name == "app" && retained.LastSeenUtc == Epoch, "returned history snapshots cannot mutate retained state");
+    }
+    private static void EndpointFiltering()
+    {
+        var tcp = Row("tcp", 56789, @"C:\One\app.exe"); tcp.RemoteAddress = "203.0.113.10";
+        var udp = Row("udp", 56789, @"C:\One\app.exe"); udp.Protocol = "UDP"; udp.State = "BOUND"; udp.RemoteAddress = null; udp.RemotePort = 0;
+        var gone = Row("gone", 56789, @"C:\One\app.exe"); gone.RemoteAddress = "203.0.113.99";
+        var listen = Row("listen", 567890, @"C:\One\app.exe"); listen.State = "LISTEN"; listen.RemoteAddress = null; listen.RemotePort = 0;
+        var store = new ConnectionStore(); store.Apply(Snap(0, tcp, udp, gone, listen)); store.Apply(Snap(2, tcp, udp, listen));
+        var app = store.Applications.Single(); var process = app.Processes[0]; var retained = process.Endpoints.Single(e => e.Key == "udp");
+        Check(new EndpointFilter(" UDP ", 0, 0).Apply(app) == 1 && app.DisplayProcesses.Count == 1 && process.DisplayEndpoints.Single() == retained, "protocol query narrows the actual displayed process and endpoint collections");
+        Check(process.Endpoints.Count == 3 && app.Processes.Count == 2, "display filters never delete source observations or process groups");
+        Check(new EndpointFilter("203.0.113.99", 1, 1).Apply(app) == 0, "a historical IP cannot match current established TCP through a different endpoint");
+        Check(new EndpointFilter("", 0, 2).Apply(app) == 1 && process.DisplayEndpoints.Single().Key == "gone" && app.DisplayStatus == "仅近期历史", "history remains discoverable inside an application that also has current endpoints");
+        Check(new EndpointFilter("203.0.113.99", 1, 2).Apply(app) == 1 && !process.DisplayEndpoints.Single().IsCurrent, "history state filtering uses the last observed state without claiming it is current");
+        Check(new EndpointFilter("APP", 3, 1).Apply(app) == 1 && process.DisplayEndpoints.Single() == retained, "application metadata matches still obey protocol and time filters on the same endpoint");
+        Check(new EndpointFilter(@"C:\One\app.exe", 0, 0).Apply(app) == 4 && !app.CanShowAll, "full application path reveals all its endpoints and removes redundant show-all action");
+        Check(new EndpointFilter("56789", 0, 0).Apply(app) == 3 && app.DisplayProcesses.Single() == process, "PID matching selects the exact process without selecting a longer PID");
+        Check(new EndpointFilter("", 2, 1).Apply(app) == 1 && app.DisplayProcesses.Single().DisplayEndpoints.Single().Key == "listen", "listeners are independently searchable even when another process has established TCP");
+        var query = new EndpointFilter("UDP", 0, 1); query.Apply(app); app.IsExpanded = true; process.IsExpanded = true;
+        int changes = 0; app.DisplayProcesses.CollectionChanged += delegate { changes++; }; process.DisplayEndpoints.CollectionChanged += delegate { changes++; };
+        store.Apply(Snap(3, tcp, udp, listen)); query.Apply(app);
+        Check(changes == 0 && app.IsExpanded && process.IsExpanded && process.DisplayEndpoints.Single() == retained, "unchanged samples preserve filtered collection identity, expansion and endpoint objects without Reset");
+        store.Apply(Snap(4, tcp, listen));
+        Check(query.Apply(app) == 0 && new EndpointFilter("UDP", 0, 2).Apply(app) == 1, "a disappearing endpoint moves from current to history in filtered views");
+        store.Apply(Snap(65, tcp, listen));
+        Check(new EndpointFilter("", 0, 2).Apply(app) == 0 && new EndpointFilter("", 0, 0).Apply(app) == 2, "expiry removes historical matches and clearing filters restores surviving source endpoints");
+    }
+    private static void CopyDetails()
+    {
+        var row = Row("ipv6", 42, @"C:\One\app.exe"); row.AddressFamily = "IPv6"; row.LocalAddress = "fe80::1%12"; row.RemoteAddress = "fe80::2%12";
+        var endpoint = new EndpointView(row, Epoch);
+        Check(endpoint.Local == "[fe80::1%12]:1234" && endpoint.Remote == "[fe80::2%12]:4321" && endpoint.CopyText == endpoint.Remote && endpoint.CanCopyRemote, "TCP copy preserves IPv6 brackets, scope and the original default remote action");
+        string details = endpoint.DetailsText;
+        Check(details.Contains("PID：42") && details.Contains(row.Process.Path) && details.Contains(endpoint.Local) && details.Contains(endpoint.Remote) && details.Contains("当前快照") && details.Contains("采样时间：") && details.Contains("2026-10-29"), "complete current record includes both endpoints, identity and dated observation time");
+        endpoint.IsCurrent = false;
+        Check(endpoint.DetailsText.Contains("最后观察状态：已建立") && endpoint.DetailsText.Contains("近期历史（不代表当前连接）") && endpoint.DetailsText.Contains("最后观察时间：") && !endpoint.DetailsText.Contains("采样时间："), "historical copies describe last observation rather than an exact closure or current connection");
+        row = Row("udp", 42, null); row.Protocol = "UDP"; row.State = "BOUND"; row.RemoteAddress = null; row.RemotePort = 0;
+        endpoint = new EndpointView(row, Epoch);
+        Check(!endpoint.CanCopyRemote && endpoint.CopyText == endpoint.Local && endpoint.DetailsText.Contains("远端端点：未知 · 系统表不提供"), "UDP copy never invents a remote endpoint");
+        row = Row("listen", 42, null); row.State = "LISTEN"; row.RemoteAddress = null; row.RemotePort = 0;
+        endpoint = new EndpointView(row, Epoch);
+        Check(!endpoint.CanCopyRemote && endpoint.CopyText == endpoint.Local && endpoint.DetailsText.Contains("远端端点：—"), "listener copy explicitly has no remote endpoint");
+        row = Unverified("copy"); endpoint = new EndpointView(row, Epoch);
+        Check(endpoint.DetailsText.Contains("身份不可核验") && endpoint.DetailsText.Contains("路径：未知"), "complete copies retain unknown attribution instead of suggesting verified ownership");
     }
     private static EndpointRecord Unverified(string epoch)
     {

@@ -24,7 +24,7 @@ if ($Executable) {
 Write-Host 'SOURCE UNIT mode: business source is compiled with tests; use -Executable for final-artifact verification.'
 $testExecutable = Join-Path $output 'IconCacheTests.exe'
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $repo 'src\NetPeek.Core') -Filter '*.cs' | ForEach-Object { $_.FullName })
-$sources += @('src\NetPeek.App\CaptureHistory.cs','src\NetPeek.App\ViewModels.cs','src\NetPeek.App\IconCache.cs','tests\IconCacheTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources += @('src\NetPeek.App\CaptureHistory.cs','src\NetPeek.App\ViewModels.cs','src\NetPeek.App\EndpointFilter.cs','src\NetPeek.App\IconCache.cs','tests\IconCacheTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $references = @('/reference:System.dll', '/reference:System.Core.dll', "/reference:$framework\WPF\WindowsBase.dll", "/reference:$framework\WPF\PresentationCore.dll", "/reference:$framework\WPF\PresentationFramework.dll")
 & $compiler /nologo /target:exe /platform:anycpu /optimize+ /warnaserror+ "/out:$testExecutable" $references $sources
 if ($LASTEXITCODE -ne 0) { throw "图标缓存测试编译失败: $LASTEXITCODE" }
