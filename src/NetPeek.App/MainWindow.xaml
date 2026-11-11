@@ -62,6 +62,7 @@
       <Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#D6EBDD"/><Setter Property="Foreground" Value="#20382E"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#25664F"/></Trigger></Style.Triggers>
     </Style>
     <Style x:Key="EndpointText" TargetType="TextBlock"><Setter Property="FontFamily" Value="Consolas"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/></Style>
+    <Style x:Key="StatusText" TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip" Value="{Binding StatusHint}"/></Style>
     <Style x:Key="HeaderToggle" TargetType="ToggleButton">
       <Setter Property="Background" Value="Transparent"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
@@ -163,7 +164,7 @@
         <Border x:Name="SearchBorder" Background="White" BorderBrush="#D5E1D8" BorderThickness="1" CornerRadius="10" Padding="10,0,4,0" Height="38">
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <Path Data="M 15,15 L 20,20 M 16,9 A 7,7 0 1 1 2,9 A 7,7 0 1 1 16,9" Stroke="#6D8273" StrokeThickness="1.7" Width="20" Height="22" VerticalAlignment="Center"/>
-            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" Foreground="#20382E" CaretBrush="#25664F" SelectionBrush="#BBDEC8" VerticalContentAlignment="Center" Padding="5,0" AutomationProperties.Name="搜索应用、PID 或地址" ToolTip="搜索应用、完整 PID、IP、端口或协议 · Enter 定位首个结果 · Ctrl+F"/>
+            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" Foreground="#20382E" CaretBrush="#25664F" SelectionBrush="#BBDEC8" VerticalContentAlignment="Center" Padding="5,0" AutomationProperties.Name="搜索应用、PID 或地址" AutomationProperties.HelpText="pid:1234 精确匹配进程；port:443 精确匹配本地或远端端口" ToolTip="搜索应用、IP 或协议；pid:1234 精确查进程，port:443 精确查本地或远端端口 · Enter 定位首个结果 · Ctrl+F"/>
             <TextBlock x:Name="SearchPlaceholder" Grid.Column="1" Text="搜索应用、PID 或地址" Foreground="#64766B" VerticalAlignment="Center" Margin="5,0,0,0" IsHitTestVisible="False" FontSize="12" TextTrimming="CharacterEllipsis"/>
             <Button x:Name="ClearSearchButton" Grid.Column="2" Style="{StaticResource QuietButton}" Padding="6,2" MinWidth="30" Visibility="Collapsed" ToolTip="清空搜索并恢复全部应用" AutomationProperties.Name="清空搜索"><Path Data="M 2,2 L 10,10 M 10,2 L 2,10" Stroke="#486650" StrokeThickness="1.6" Width="12" Height="12"/></Button>
           </Grid>
@@ -197,8 +198,17 @@
                       <TextBlock Text="{Binding Note}" Foreground="#5F7168" FontSize="10" Margin="8,0,0,8" TextWrapping="Wrap"/>
                       <DataGrid ItemsSource="{Binding DisplayEndpoints}" MaxHeight="270" AutomationProperties.Name="进程连接详情">
                         <DataGrid.Columns>
-                          <DataGridTextColumn Header="远端 IP : 端口" Binding="{Binding Remote}" Width="*" MinWidth="155" ElementStyle="{StaticResource EndpointText}"/>
-                          <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="90" MinWidth="90"/>
+                          <DataGridTemplateColumn Header="端点 IP : 端口" Width="*" MinWidth="155"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <Grid ToolTip="{Binding PrimaryHint}" AutomationProperties.Name="{Binding PrimaryHint}">
+                              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                              <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding PrimaryAddress}" FontFamily="Consolas" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="1" Text="{Binding PrimaryPort}" FontFamily="Consolas"/>
+                              </Grid>
+                              <TextBlock Grid.Row="1" Text="{Binding PrimaryRole}" FontSize="10" Foreground="#5F7168"/>
+                            </Grid>
+                          </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                          <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="90" MinWidth="90" ElementStyle="{StaticResource StatusText}"/>
                           <DataGridTemplateColumn Header="复制" Width="96" MinWidth="96"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
                               <Button Content="复制" Tag="CopyEndpoint" Style="{StaticResource CopyButton}" Padding="4,3" ToolTip="复制远端地址；监听和 UDP 复制本地地址"/>

@@ -72,6 +72,7 @@ internal static class ControllerStateTests
             Check(Object.ReferenceEquals(retained, store.Applications.Single().Processes.Single().Endpoints.Single()) && retained.IsCurrent && retained.Key == "baseline", "partial data and unseen history never replace the retained complete UI snapshot");
             Check((int)Field(controller, "samplesApplied") == applied && (DateTime)Field(controller, "lastSuccess") == lastSuccess, "partial render does not advance applied-snapshot count or freshness timestamp");
             FilterAndPause(window, controller, collection, render, epoch.AddMinutes(2));
+            Freshness(window, controller, collection, render);
         }
         finally {
             if (controller != null) ((IDisposable)controller).Dispose();
@@ -116,6 +117,12 @@ internal static class ControllerStateTests
         Send(collection, render, controller, Snapshot(epoch.AddSeconds(1), current.Concat(new[] { udp }).ToArray()));
         var search = (TextBox)window.FindName("SearchBox"); var time = (ComboBox)window.FindName("TimeFilterBox"); var state = (ComboBox)window.FindName("FilterBox");
         var list = (ListBox)window.FindName("AppList");
+        search.Text = "pid:7"; Pump(200);
+        Check(list.Items.Count == 1 && ((ApplicationView)list.Items[0]).DisplayProcesses.Single().DisplayEndpoints.Count == 82, "actual search debounce applies the exact PID query");
+        search.Text = "port:41007"; Pump(200);
+        Check(((ApplicationView)list.Items[0]).DisplayProcesses.Single().DisplayEndpoints.Single().Record.LocalPort == 41007, "actual search selects one exact local port without substring matches");
+        search.Text = "port:65536"; Pump(200);
+        Check(list.Items.Count == 0 && ((TextBlock)window.FindName("EmptyTitle")).Text == "查询格式不正确" && ((TextBlock)window.FindName("EmptyDescription")).Text.Contains("0–65535"), "invalid exact query displays its correction instead of a misleading no-results state");
         search.Text = "203.0.113.99"; Pump(200); state.SelectedIndex = 1; time.SelectedIndex = 1;
         Check(list.Items.Count == 0 && ((TextBlock)window.FindName("EmptyTitle")).Text.Contains("端点"), "actual search debounce plus current/state controls exclude an IP seen only in history");
         time.SelectedIndex = 2;
@@ -144,6 +151,8 @@ internal static class ControllerStateTests
         Check(!app.IsExpanded, "background refresh does not reopen a result the user collapsed");
         Click(window, "PauseButton"); DateTime frozenTime = (DateTime)Field(controller, "lastSuccess");
         Send(collection, render, controller, Snapshot(epoch.AddSeconds(4)));
+        search.Text = "port:43000"; Pump(200); time.SelectedIndex = 1;
+        Check((DateTime)Field(controller, "lastSuccess") == frozenTime && app.DisplayProcesses.Single().DisplayEndpoints.Single().Key == "udp", "exact queries while paused inspect the frozen snapshot rather than pending samples");
         search.Text = "UDP"; Pump(200); time.SelectedIndex = 1;
         Check((DateTime)Field(controller, "lastSuccess") == frozenTime && app.DisplayProcesses.Single().DisplayEndpoints.Single().Key == "udp", "search and time changes while paused still use the frozen displayed snapshot");
         Click(window, "PauseButton");
@@ -155,5 +164,39 @@ internal static class ControllerStateTests
         Check(((MenuItem)menu.Items[0]).IsEnabled && !((MenuItem)menu.Items[1]).IsEnabled && ((MenuItem)menu.Items[3]).Header.ToString() == "复制完整记录", "actual copy menu enables local/full copy and disables unavailable UDP remote copy");
         Click(window, "ClearSearchButton");
         Check(time.SelectedIndex == 0 && state.SelectedIndex == 0 && search.Text == "", "clear-search action also resets both endpoint selectors");
+    }
+    private static void Freshness(Window window, object controller, object collection, MethodInfo render)
+    {
+        var type = controller.GetType();
+        var update = type.GetMethod("UpdateStatusAt", Private);
+        DateTime captured = (DateTime)Field(controller, "lastSuccess");
+        const string capacity = "历史记录已达 12,000 条上限，最早记录已滚动移出。";
+        type.GetField("currentWarning", Private).SetValue(controller, capacity);
+        var warning = (TextBlock)window.FindName("WarningText");
+        update.Invoke(controller, new object[] { captured.AddSeconds(6) });
+        Check(warning.Text == capacity, "exact six-second boundary keeps existing warning without prematurely declaring stale data");
+        update.Invoke(controller, new object[] { captured.AddSeconds(6).AddTicks(1) });
+        Check(warning.Text.StartsWith("当前画面已超过 6 秒未更新") && warning.Text.Contains(capacity), "stale explanation takes priority without losing history-capacity warning");
+        update.Invoke(controller, new object[] { captured.AddMinutes(2) });
+        Check(warning.Text.IndexOf(capacity, StringComparison.Ordinal) == warning.Text.LastIndexOf(capacity, StringComparison.Ordinal), "repeated stale status updates do not accumulate duplicate warnings");
+        type.GetField("currentWarning", Private).SetValue(controller, "采集不完整。合成采集失败。");
+        update.Invoke(controller, new object[] { captured.AddSeconds(7) });
+        Check(warning.Text.StartsWith("当前画面已超过 6 秒未更新") && warning.Text.Contains("合成采集失败"), "collection failure also remains available alongside stale explanation");
+        type.GetField("currentWarning", Private).SetValue(controller, null);
+        update.Invoke(controller, new object[] { captured.AddSeconds(7) });
+        Check(warning.Text.Contains("正在重新读取") && ((Border)window.FindName("WarningPanel")).Visibility == Visibility.Visible, "stale view without another warning still offers its recovery explanation");
+        Click(window, "PauseButton");
+        update.Invoke(controller, new object[] { captured.AddMinutes(2) });
+        Check(warning.Text.StartsWith("画面暂停于") && !warning.Text.Contains("6 秒") && ((Button)window.FindName("RetryButton")).Visibility == Visibility.Collapsed, "intentional pause retains its own explanation rather than a stale-data alarm");
+        Click(window, "PauseButton");
+        update.Invoke(controller, new object[] { captured.AddSeconds(7) });
+        Check(warning.Text.StartsWith("当前画面已超过 6 秒未更新"), "resuming an old retained snapshot restores stale status until a complete sample arrives");
+        DateTime recovered = captured.AddSeconds(8);
+        Send(collection, render, controller, Snapshot(recovered));
+        update.Invoke(controller, new object[] { recovered });
+        Check(((Border)window.FindName("WarningPanel")).Visibility == Visibility.Collapsed && ((TextBlock)window.FindName("StatusText")).Text == "正在采集", "a fresh complete sample clears stale and failure messages");
+        type.GetField("currentWarning", Private).SetValue(controller, capacity);
+        update.Invoke(controller, new object[] { recovered });
+        Check(warning.Text == capacity, "fresh data preserves independent history warnings without stale text");
     }
 }

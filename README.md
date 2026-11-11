@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/seiya058904/netpeek/releases/tag/v0.2.0"><img alt="Release v0.2.0" src="https://img.shields.io/badge/release-v0.2.0-28684F?style=flat-square" /></a>
+  <a href="https://github.com/seiya058904/netpeek/releases/tag/v0.3.0"><img alt="Release v0.3.0" src="https://img.shields.io/badge/release-v0.3.0-28684F?style=flat-square" /></a>
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-486650?style=flat-square" />
   <img alt="Native WPF" src="https://img.shields.io/badge/native-WPF-6A8071?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL 3.0 or later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-7A8872?style=flat-square" /></a>
@@ -40,7 +40,7 @@
   <img src="docs/screenshots/0.1.1/overview.png" width="100%" alt="NetPeek's Simplified Chinese interface, with network endpoints grouped by application" />
 </p>
 <p align="center">
-  <sub>Illustrative v0.1.1 previews; v0.2.0 adds the endpoint workflows described below.<br />
+  <sub>Illustrative v0.1.1 previews; later releases add the endpoint workflows described below.<br />
   Live local sampling · Offscreen rendering of real WPF controls.<br />
   These previews are not physical-desktop or high-DPI acceptance screenshots.</sub>
 </p>
@@ -94,13 +94,13 @@ This view uses controlled loopback connections. Full IPv6 addresses can be inspe
 2. **Extract the whole folder** and open **NetPeek.exe**. No installer or administrator privileges are needed.
 3. **Explore an app**, expand its processes and endpoints, then search by name, PID, IP, port or protocol and copy the address you need.
 
-### Choose your download · v0.2.0
+### Choose your download · v0.3.0
 
 | Asset | What is inside |
 | --- | --- |
-| **[Windows x64 portable ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/NetPeek_0.2.0_windows_x64.zip)** | The app, corresponding source code and licenses |
-| [Source ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/NetPeek_0.2.0_source.zip) | Corresponding source, build scripts, tests and documentation |
-| [SHA256SUMS.txt](https://github.com/seiya058904/netpeek/releases/download/v0.2.0/SHA256SUMS.txt) | Checksums for the release downloads |
+| **[Windows x64 portable ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.3.0/NetPeek_0.3.0_windows_x64.zip)** | The app, corresponding source code and licenses |
+| [Source ZIP](https://github.com/seiya058904/netpeek/releases/download/v0.3.0/NetPeek_0.3.0_source.zip) | Corresponding source, build scripts, tests and documentation |
+| [SHA256SUMS.txt](https://github.com/seiya058904/netpeek/releases/download/v0.3.0/SHA256SUMS.txt) | Checksums for the release downloads |
 
 | Before you open it | Requirement or status |
 | --- | --- |
@@ -112,7 +112,7 @@ This view uses controlled loopback connections. Full IPv6 addresses can be inspe
 <details>
 <summary><strong>Everyday controls and keyboard shortcuts</strong></summary>
 
-- **Search and filter:** Find a name, path, PID, IP, port or protocol. An empty result offers a one-click reset to all apps.
+- **Search and filter:** Find a name, path, PID, IP, port or protocol. Use `pid:1234` for an exact PID or `port:443` for an exact local/available remote port. An empty result offers a one-click reset to all apps.
 - **Copy:** Connections copy the remote address; listeners and UDP rows copy the local endpoint. IPv6 uses `[address%scope]:port`, and Copy path preserves the full executable path.
 - **Pause:** Freeze the display while sampling continues in the background. Resume to show the latest complete snapshot.
 - **Tray:** The tray action hides the window. Double-click the tray icon or launch NetPeek again to restore it. Each Windows user session has one UI instance.
@@ -161,6 +161,14 @@ Normal use writes no connection logs. An unhandled exception overwrites `%LOCALA
 
 **C# / WPF · .NET Framework 4.8 · Windows IP Helper API**
 
+### Exact queries and clearer observations · v0.3.0
+
+Version 0.3.0 adds exact `pid:1234` and `port:443` queries. Port queries match the local or available remote port exactly; ordinary text search remains unchanged. Invalid exact queries explain the accepted range instead of falling back to fuzzy matches. State/time filters and pause still apply to the same displayed observations.
+
+The leading endpoint column shows the remote endpoint for TCP connections and the local endpoint for UDP/listeners, with an explicit role label and space reserved for the port. Full addresses, including IPv6 scope, remain available through tooltips and copying. Historical states use the `曾：` prefix (previously observed). A stale-view explanation takes priority over other warnings while retaining those warnings in the full details.
+
+See the [v0.3.0 validation record](docs/VALIDATION_0.3.0.md) for checks against this release's final executable and its remaining coverage limits.
+
 ### Endpoint workflow improvements · v0.2.0
 
 Version 0.2.0 adds the following workflows. The preview images above remain clearly labelled v0.1.1 examples.
@@ -208,7 +216,7 @@ The explicit clipboard workflow opens owned loopback sockets, runs the actual ap
 .\tests\run-wpf-harness.ps1 -Executable .\dist\NetPeek\NetPeek.exe -Mode clipboard -OutputDirectory .\artifacts\clipboard-check
 ```
 
-The same harness supports `gui`, `dpi` and `benchmark` modes. GUI and benchmark modes use the PID from the explicit loopback fixture in `tests/Start-EndpointLoad.ps1`; see the [v0.2.0 validation record](docs/VALIDATION_0.2.0.md) for scopes and performance comparisons. The harness embeds the product's DPI manifest. Its timings include test-host overhead and are not standalone process footprints.
+The same harness supports `gui`, `dpi` and `benchmark` modes. GUI and benchmark modes use the PID from the explicit loopback fixture in `tests/Start-EndpointLoad.ps1`; see the [v0.3.0 validation record](docs/VALIDATION_0.3.0.md) for scopes and performance comparisons. The harness embeds the product's DPI manifest. Its timings include test-host overhead and are not standalone process footprints.
 
 Diagnostic commands write reports only when an output path is explicitly supplied:
 
@@ -223,16 +231,17 @@ If local execution policy blocks a script, `powershell.exe -NoProfile -Execution
 
 </details>
 
-### Recorded validation · v0.2.0
+### Recorded validation · v0.3.0
 
-**The final v0.2.0 EXE passed 181 targeted checks, 65 integration checks, 26 clipboard checks and 33 GUI checks.** Clipboard verification uses real owned loopback endpoints, rendered control routes and Windows clipboard equality. GUI coverage includes selection/scroll retention across live samples, pause/resume, tray activation, history expiry and icon reappearance. One search-focus observation remains explicitly unverified.
+**The final v0.3.0 EXE passed 259 targeted checks, 65 integration checks, 26 clipboard checks and 33 GUI checks.** Clipboard verification uses real owned loopback endpoints, rendered control routes and Windows clipboard equality. GUI coverage includes selection/scroll retention across live samples, pause/resume, tray activation, history expiry and icon reappearance. One search-focus observation remains explicitly unverified; conditional clipboard-restoration observations are recorded separately.
 
-The same-machine performance comparison uses the same test host for both releases and three repeated samples per scene; its overhead is included. Actual windows were observed at 96 DPI, with compact geometry and DPI conversion checked separately in simulation. Windows 10, real high-DPI/multiple-monitor transitions, adapter changes, sleep/resume and full external keyboard/screen-reader acceptance remain unverified.
+The final executable passed the existing CPU and memory regression budgets against v0.2.0. An initial CPU regression was isolated to a longer search placeholder; the release retains the short placeholder and exposes exact-query examples through tooltips and help. The validation record preserves the failed candidates and the limits of that diagnosis. The comparison uses the same test host and three repeated samples per scene, includes host overhead and discloses natural system load drift. Actual windows were observed at 96 DPI, with compact geometry and DPI conversion checked separately in simulation. Windows 10, real high-DPI/multiple-monitor transitions, adapter changes, sleep/resume and full external keyboard/screen-reader acceptance remain unverified.
 
 | Record | What you will find |
 | --- | --- |
 | [Changelog](docs/CHANGELOG.md) | Changes between versions |
-| [v0.2.0 validation and performance](docs/VALIDATION_0.2.0.md) | Final EXE checks, clipboard results, performance comparison and limits |
+| [v0.3.0 validation and performance](docs/VALIDATION_0.3.0.md) | Final EXE checks, regression investigation, clipboard results and limits |
+| [v0.2.0 validation and performance](docs/VALIDATION_0.2.0.md) | Historical release evidence and its original limitations |
 | [v0.1.1 validation and performance](docs/VALIDATION_0.1.1.md) | Historical release evidence and its original limitations |
 | [v0.1.0 archive](docs/VALIDATION.md) | Earlier validation evidence |
 | [Upstream audit](docs/UPSTREAM_AUDIT.md) | Review of the original project's behavior and implementation |

@@ -82,12 +82,12 @@ internal static class LayoutTests
             var search = (TextBox)window.FindName("SearchBox"); var time = (ComboBox)window.FindName("TimeFilterBox");
             Check(search.ActualWidth >= 140 && time.ActualWidth >= 120, label + " search and time range retain usable widths");
             Check(list.ActualWidth > 250 && grid.ActualWidth > 250, label + " actual endpoint content has usable width");
-            Check(grid.Columns.Count == 7 && (string)grid.Columns[0].Header == "远端 IP : 端口" && (string)grid.Columns[1].Header == "状态" && (string)grid.Columns[2].Header == "复制", label + " uses actual remote/status/copy leading columns");
+            Check(grid.Columns.Count == 7 && (string)grid.Columns[0].Header == "端点 IP : 端口" && (string)grid.Columns[1].Header == "状态" && (string)grid.Columns[2].Header == "复制", label + " uses stable primary-endpoint/status/copy leading columns");
             double frozenWidth = grid.Columns.Take(3).Sum(c => c.ActualWidth);
             Check(frozenWidth <= grid.ActualWidth - 2 && grid.FrozenColumnCount == 3, label + " remote/status/copy fit in the default viewport");
             Check(grid.Columns[1].ActualWidth >= 90 && grid.Columns[2].ActualWidth >= 62 && grid.Columns[3].ActualWidth >= 84 && grid.Columns[5].ActualWidth >= 78 && grid.Columns[6].ActualWidth >= 88,
                 label + " star address columns cannot squeeze state/copy/protocol labels below their usable widths");
-            Check(grid.Items.Count == 3 && Descendants<DataGridRow>(grid).Any(), label + " binds and realizes the delivered executable's VM rows");
+            Check(grid.Items.Count == 4 && Descendants<DataGridRow>(grid).Any(), label + " binds and realizes TCP, UDP, listener and historical VM rows");
             FrameworkElement main = (FrameworkElement)window.FindName("MainPane");
             Point corner = main.TranslatePoint(new Point(main.ActualWidth, main.ActualHeight), (UIElement)window.Content);
             FrameworkElement clientRoot = (FrameworkElement)window.Content;
@@ -101,6 +101,8 @@ internal static class LayoutTests
             DataGridCell firstCopy = Descendants<DataGridCell>(grid).First(c => c.Column == grid.Columns[2]);
             Point rowTop = firstCopy.TranslatePoint(new Point(), list), rowBottom = firstCopy.TranslatePoint(new Point(0, firstCopy.ActualHeight), list);
             Check(rowTop.Y >= -1 && rowBottom.Y <= list.ActualHeight + 1, label + " scrolling the main list exposes a complete endpoint copy cell within its viewport");
+            PrimaryEndpoints(grid, label);
+            Render(window, label + "-endpoints");
             // Exercise the actual grid's production Loaded/SizeChanged hooks at a
             // viewport smaller than its leading columns; all columns must scroll.
             grid.Width = 280;
@@ -119,6 +121,29 @@ internal static class LayoutTests
             Check(Descendants<Button>(copy).Any(b => (string)b.Tag == "CopyMenu"), label + " explicit copy menu remains reachable alongside quick copy");
             DetailWindowSize(window, size);
         } finally { window.Close(); Pump(); }
+    }
+    private static void PrimaryEndpoints(DataGrid grid, string label)
+    {
+        string[] ports = { ":443", ":45001", ":45002", ":443" };
+        string[] roles = { "远端", "本地 · 远端未知", "本地 · 监听", "远端" };
+        string[] addresses = { "[2001:db8:1234:5678:1234:5678:1234:5678]", "[fe80::1234:5678:1234:5678%12]", "0.0.0.0", "203.0.113.8" };
+        for (int i = 0; i < grid.Items.Count; i++) {
+            object item = grid.Items[i];
+            grid.ScrollIntoView(item, grid.Columns[0]); Pump(); grid.UpdateLayout();
+            var cell = Descendants<DataGridCell>(grid).Single(c => c.Column == grid.Columns[0] && Object.ReferenceEquals(c.DataContext, item));
+            var texts = Descendants<TextBlock>(cell).ToList();
+            var port = texts.Single(t => t.Text == ports[i]);
+            Point right = port.TranslatePoint(new Point(port.ActualWidth, 0), grid);
+            Point left = port.TranslatePoint(new Point(), grid);
+            Check(port.ActualWidth >= port.DesiredSize.Width - 0.1 && left.X >= 0 && right.X <= grid.ActualWidth && texts.Any(t => t.Text == roles[i]) && texts.Any(t => t.Text == addresses[i]),
+                label + " row " + i + " exposes the complete primary port and correct role/address without horizontal scrolling");
+            string hint = Descendants<Grid>(cell).Where(g => g.ToolTip is string).Select(g => (string)g.ToolTip).Single();
+            Check(hint.Contains(addresses[i] + ports[i]) && (i != 1 || hint.Contains("系统表不提供")), label + " row " + i + " tooltip retains full address/scope and unavailable-remote semantics");
+        }
+        var historical = grid.Items[3];
+        var status = Descendants<DataGridCell>(grid).Single(c => c.Column == grid.Columns[1] && Object.ReferenceEquals(c.DataContext, historical));
+        var state = Descendants<TextBlock>(status).Single();
+        Check(state.Text == "曾：正在连接" && ((string)state.ToolTip).Contains("不代表当前连接"), label + " historical status shows the last observed state with its explanation");
     }
     private static void DetailWindowSize(Window owner, Size size)
     {
@@ -150,13 +175,18 @@ internal static class LayoutTests
         object app = Activator.CreateInstance(appType, new[] { identity });
         object process = Activator.CreateInstance(processType, new[] { identity });
         IList endpoints = (IList)processType.GetProperty("Endpoints").GetValue(process, null);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             object record = Activator.CreateInstance(recordType);
             Set(record, "Key", "layout:" + i); Set(record, "Protocol", "TCP"); Set(record, "AddressFamily", "IPv6");
             Set(record, "LocalAddress", "::1"); Set(record, "LocalPort", 45000 + i);
             Set(record, "RemoteAddress", "2001:db8:1234:5678:1234:5678:1234:5678"); Set(record, "RemotePort", 443);
             Set(record, "State", "ESTABLISHED"); Set(record, "Process", identity);
-            endpoints.Add(Activator.CreateInstance(endpointType, new[] { record, (object)DateTime.UtcNow }));
+            if (i == 1) { Set(record, "Protocol", "UDP"); Set(record, "State", "BOUND"); Set(record, "LocalAddress", "fe80::1234:5678:1234:5678%12"); Set(record, "RemoteAddress", null); Set(record, "RemotePort", 0); }
+            if (i == 2) { Set(record, "State", "LISTEN"); Set(record, "AddressFamily", "IPv4"); Set(record, "LocalAddress", "0.0.0.0"); Set(record, "RemoteAddress", null); Set(record, "RemotePort", 0); }
+            if (i == 3) { Set(record, "State", "SYN_SENT"); Set(record, "AddressFamily", "IPv4"); Set(record, "LocalAddress", "127.0.0.1"); Set(record, "RemoteAddress", "203.0.113.8"); }
+            object endpoint = Activator.CreateInstance(endpointType, new[] { record, (object)DateTime.UtcNow });
+            if (i == 3) Set(endpoint, "IsCurrent", false);
+            endpoints.Add(endpoint);
         }
         ((IList)appType.GetProperty("Processes").GetValue(app, null)).Add(process);
         appType.GetMethod("Recount").Invoke(app, null);

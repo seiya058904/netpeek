@@ -29,12 +29,18 @@ namespace NetPeek
         public string Key { get; private set; }
         public DateTime LastSeenUtc { get; private set; }
         private bool current;
-        public bool IsCurrent { get { return current; } set { if (Set(ref current, value, "IsCurrent")) { Changed("Status"); Changed("TimeText"); Changed("Opacity"); } } }
+        public bool IsCurrent { get { return current; } set { if (Set(ref current, value, "IsCurrent")) { Changed("Status"); Changed("StatusHint"); Changed("TimeText"); Changed("Opacity"); } } }
         public string Transport { get { return Record.Protocol + " / " + Record.AddressFamily; } }
         public string Local { get { return Format(Record.LocalAddress, Record.LocalPort); } }
         public string Remote { get { return Record.Protocol == "UDP" ? "未知 · 系统表不提供" : Record.State == "LISTEN" ? "—" : Format(Record.RemoteAddress, Record.RemotePort); } }
         public string Scope { get { return Record.Protocol == "UDP" || Record.State == "LISTEN" ? "本地端点" : AddressScope(Record.RemoteAddress); } }
-        public string Status { get { return !IsCurrent ? "历史出现" : StateLabel(Record.State); } }
+        private bool UsesLocalEndpoint { get { return Record.Protocol == "UDP" || Record.State == "LISTEN"; } }
+        public string PrimaryAddress { get { string address = UsesLocalEndpoint ? Record.LocalAddress : Record.RemoteAddress; return String.IsNullOrEmpty(address) ? "未知" : address.Contains(":") ? "[" + address + "]" : address; } }
+        public string PrimaryPort { get { return String.IsNullOrEmpty(UsesLocalEndpoint ? Record.LocalAddress : Record.RemoteAddress) ? "" : ":" + (UsesLocalEndpoint ? Record.LocalPort : Record.RemotePort).ToString(CultureInfo.InvariantCulture); } }
+        public string PrimaryRole { get { return Record.Protocol == "UDP" ? "本地 · 远端未知" : Record.State == "LISTEN" ? "本地 · 监听" : "远端"; } }
+        public string PrimaryHint { get { return (UsesLocalEndpoint ? "本地端点：" : "远端端点：") + CopyText + (Record.Protocol == "UDP" ? "；UDP 系统表不提供远端。" : ""); } }
+        public string Status { get { return (IsCurrent ? "" : "曾：") + (Record.State == "BOUND" ? "UDP 绑定" : StateLabel(Record.State)); } }
+        public string StatusHint { get { return IsCurrent ? "当前快照：" + StateLabel(Record.State) + "（以画面时间为准）" : "历史记录 · 最后观察状态：" + StateLabel(Record.State) + "；不代表当前连接。"; } }
         public string TimeText { get { return IsCurrent ? "本次快照" : LastSeenUtc.ToLocalTime().ToString("HH:mm:ss"); } }
         public double Opacity { get { return IsCurrent ? 1 : 0.62; } }
         public string CopyText { get { return Record.Protocol == "UDP" || Record.State == "LISTEN" ? Local : Remote; } }
@@ -70,6 +76,10 @@ namespace NetPeek
             string previousScope = remote || transport || state ? Scope : null;
             string previousCopy = local || remote || transport || state ? CopyText : null;
             string previousStatus = state || currentChanged ? Status : null;
+            string previousStatusHint = state || currentChanged ? StatusHint : null;
+            bool primaryChanged = local || remote || transport || state;
+            string previousAddress = primaryChanged ? PrimaryAddress : null, previousPort = primaryChanged ? PrimaryPort : null;
+            string previousRole = primaryChanged ? PrimaryRole : null, previousHint = primaryChanged ? PrimaryHint : null;
             Record = record; LastSeenUtc = time; current = isCurrent;
             if (transport) Changed("Transport");
             if (local) Changed("Local");
@@ -77,6 +87,13 @@ namespace NetPeek
             if ((remote || transport || state) && previousScope != Scope) Changed("Scope");
             if ((local || remote || transport || state) && previousCopy != CopyText) Changed("CopyText");
             if ((state || currentChanged) && previousStatus != Status) Changed("Status");
+            if ((state || currentChanged) && previousStatusHint != StatusHint) Changed("StatusHint");
+            if (primaryChanged) {
+                if (previousAddress != PrimaryAddress) Changed("PrimaryAddress");
+                if (previousPort != PrimaryPort) Changed("PrimaryPort");
+                if (previousRole != PrimaryRole) Changed("PrimaryRole");
+                if (previousHint != PrimaryHint) Changed("PrimaryHint");
+            }
             if (currentChanged) { Changed("IsCurrent"); Changed("Opacity"); }
             if (previousTime != TimeText) Changed("TimeText");
             return state || transport || local || remote || currentChanged;

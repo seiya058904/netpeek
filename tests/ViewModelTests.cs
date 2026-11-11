@@ -21,7 +21,7 @@ internal static class ViewModelTests
     private static List<EndpointView> Endpoints(ConnectionStore store) { return store.Applications.SelectMany(a => a.Processes).SelectMany(p => p.Endpoints).ToList(); }
     public static int Main()
     {
-        try { StableAndGrouping(); DeltaNotifications(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); UnverifiedSlots(); Copies(); EndpointFiltering(); CopyDetails(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
+        try { StableAndGrouping(); DeltaNotifications(); MetadataRecovery(); PartialAndScope(); HiddenHistory(); Bounds(); UnknownIdentity(); UnverifiedSlots(); Copies(); EndpointFiltering(); ExactQueries(); EndpointPresentation(); CopyDetails(); Console.WriteLine("SUCCESS " + passed + " offline assertions"); return 0; }
         catch (Exception ex) { Console.Error.WriteLine("FAIL " + ex); return 1; }
     }
     private static void StableAndGrouping()
@@ -64,7 +64,7 @@ internal static class ViewModelTests
         Dictionary<string, int> endpointEvents = new Dictionary<string, int>();
         endpoint.PropertyChanged += delegate(object sender, System.ComponentModel.PropertyChangedEventArgs args) { int count; endpointEvents.TryGetValue(args.PropertyName, out count); endpointEvents[args.PropertyName] = count + 1; };
         EndpointRecord closing = Row("a", 1, @"C:\One\app.exe"); closing.State = "CLOSE_WAIT";
-        Check(store.Apply(Snap(21, closing, Row("b", 1, @"C:\One\app.exe"))) && endpointEvents.Count == 1 && endpointEvents.ContainsKey("Status"), "state transition notifies only the endpoint display property that changed");
+        Check(store.Apply(Snap(21, closing, Row("b", 1, @"C:\One\app.exe"))) && endpointEvents.Count == 2 && endpointEvents.ContainsKey("Status") && endpointEvents.ContainsKey("StatusHint"), "state transition only notifies changed status text and explanation");
         int titleEvents = 0, noteEvents = 0;
         process.PropertyChanged += delegate(object sender, System.ComponentModel.PropertyChangedEventArgs args) { if (args.PropertyName == "Title") titleEvents++; if (args.PropertyName == "Note") noteEvents++; };
         EndpointRecord[] sameProcess = Enumerable.Range(0, 100).Select(i => Row("many" + i, 1, @"C:\One\app.exe")).ToArray();
@@ -180,6 +180,65 @@ internal static class ViewModelTests
         Check(!endpoint.CanCopyRemote && endpoint.CopyText == endpoint.Local && endpoint.DetailsText.Contains("远端端点：—"), "listener copy explicitly has no remote endpoint");
         row = Unverified("copy"); endpoint = new EndpointView(row, Epoch);
         Check(endpoint.DetailsText.Contains("身份不可核验") && endpoint.DetailsText.Contains("路径：未知"), "complete copies retain unknown attribution instead of suggesting verified ownership");
+    }
+    private static string[] MatchKeys(ConnectionStore store, string query, int state = 0, int time = 0)
+    {
+        var filter = new EndpointFilter(query, state, time);
+        foreach (var app in store.Applications) filter.Apply(app);
+        return store.Applications.SelectMany(a => a.DisplayProcesses).SelectMany(p => p.DisplayEndpoints).Select(e => e.Key).OrderBy(k => k).ToArray();
+    }
+    private static void ExactQueries()
+    {
+        var pid = Row("pid", 443, @"C:\One\app.exe"); pid.LocalPort = 50100; pid.RemotePort = 80;
+        var remote = Row("remote", 9001, @"C:\Two\app.exe"); remote.RemotePort = 443;
+        var substring = Row("substring", 9002, @"C:\Three\app.exe"); substring.LocalPort = 54430; substring.RemotePort = 80;
+        var local = Row("local", 9003, @"C:\Four\app.exe"); local.LocalPort = 443; local.RemotePort = 80;
+        var udp = Row("udp", 9004, @"C:\Five\app.exe"); udp.Protocol = "UDP"; udp.State = "BOUND"; udp.RemoteAddress = null; udp.RemotePort = 0;
+        var listen = Row("listen", 9005, @"C:\Six\app.exe"); listen.State = "LISTEN"; listen.RemoteAddress = null; listen.RemotePort = 0;
+        var gone = Row("gone", 9006, @"C:\Seven\app.exe"); gone.RemotePort = 443; gone.State = "SYN_SENT";
+        var ipv6 = Row("ipv6", 9007, @"C:\Eight\app.exe"); ipv6.AddressFamily = "IPv6"; ipv6.RemoteAddress = "fe80::443%12"; ipv6.RemotePort = 443;
+        var store = new ConnectionStore(); store.Apply(Snap(0, pid, remote, substring, local, udp, listen, gone, ipv6));
+        store.Apply(Snap(1, pid, remote, substring, local, udp, listen, ipv6));
+        Check(MatchKeys(store, "443").Length == 6, "bare numeric search retains existing fuzzy matches across PID, ports and addresses");
+        Check(MatchKeys(store, "pid:443").SequenceEqual(new[] { "pid" }), "explicit PID excludes matching ports and other process metadata");
+        Check(MatchKeys(store, "port:443").SequenceEqual(new[] { "gone", "ipv6", "local", "remote" }), "explicit port matches exactly either endpoint side, including IPv6 and historical observations");
+        Check(MatchKeys(store, " PID: 00443 ").SequenceEqual(new[] { "pid" }) && MatchKeys(store, "PORT:443").Length == 4, "exact queries accept case variants, surrounding spaces and leading zeros");
+        Check(MatchKeys(store, "port:443", 1, 1).SequenceEqual(new[] { "ipv6", "local", "remote" }) && MatchKeys(store, "port:443", 4, 2).SequenceEqual(new[] { "gone" }), "exact port, state and time intersect on the same endpoint");
+        Check(MatchKeys(store, "pid:9006", 0, 1).Length == 0 && MatchKeys(store, "pid:9006", 0, 2).Single() == "gone" && MatchKeys(store, "pid:443", 3).Length == 0, "exact PID respects current/history and transport filters");
+        Check(MatchKeys(store, "port:0").Length == 0, "unavailable UDP and listener remote ports never match their placeholder zero");
+        Check(MatchKeys(store, "port:1234", 3).Single() == "udp" && MatchKeys(store, "port:1234", 2).Single() == "listen", "UDP and listener local ports remain searchable");
+        foreach (string invalid in new[] { "pid:", "pid:-1", "pid:+443", "pid:2147483648", "pid:4.43", "port:", "port:65536", "port:-1", "port:abc", "port:443 pid:443" })
+            Check(new EndpointFilter(invalid, 0, 0).Error != null && MatchKeys(store, invalid).Length == 0, "invalid exact query has an explanation and no fuzzy fallback: " + invalid);
+        var bound = Row("upper-bound", Int32.MaxValue, @"C:\Bound\app.exe"); bound.LocalPort = 65535;
+        var zero = Row("zero", 0, null); zero.LocalPort = 0;
+        var bounds = new ConnectionStore(); bounds.Apply(Snap(0, bound, zero));
+        Check(MatchKeys(bounds, "pid:2147483647").Single() == "upper-bound" && MatchKeys(bounds, "port:65535").Single() == "upper-bound", "maximum PID and port values are valid");
+        Check(MatchKeys(bounds, "pid:0").Single() == "zero" && MatchKeys(bounds, "port:0").Single() == "zero", "real zero PID/local port values remain inspectable");
+        Check(MatchKeys(store, @"C:\Three\app.exe").Single() == "substring", "ordinary absolute path searches are not parsed as exact-query syntax");
+    }
+    private static void EndpointPresentation()
+    {
+        var tcp = Row("display", 42, @"C:\One\app.exe"); tcp.AddressFamily = "IPv6"; tcp.RemoteAddress = "fe80::2%12";
+        var endpoint = new EndpointView(tcp, Epoch);
+        Check(endpoint.PrimaryAddress == "[fe80::2%12]" && endpoint.PrimaryPort == ":4321" && endpoint.PrimaryRole == "远端" && endpoint.PrimaryAddress + endpoint.PrimaryPort == endpoint.CopyText, "primary TCP endpoint preserves IPv6 scope/brackets and agrees with quick copy");
+        var events = new HashSet<string>(); endpoint.PropertyChanged += (sender, args) => events.Add(args.PropertyName);
+        var udp = Row("display", 42, @"C:\One\app.exe"); udp.Protocol = "UDP"; udp.State = "BOUND"; udp.RemoteAddress = null; udp.RemotePort = 0;
+        endpoint.Update(udp, Epoch.AddSeconds(1));
+        Check(endpoint.PrimaryAddress == "127.0.0.1" && endpoint.PrimaryPort == ":1234" && endpoint.PrimaryRole.Contains("远端未知") && endpoint.PrimaryHint.Contains("系统表不提供") && !endpoint.CanCopyRemote, "UDP foregrounds local binding while explicitly retaining unavailable remote semantics");
+        Check(new[] { "PrimaryAddress", "PrimaryPort", "PrimaryRole", "PrimaryHint" }.All(events.Contains), "reused rows notify every changed primary-endpoint binding");
+        events.Clear(); endpoint.Update(udp, Epoch.AddSeconds(2));
+        Check(events.Count == 0, "unchanged primary endpoint incurs no refresh notifications");
+        var listen = Row("display", 42, null); listen.State = "LISTEN"; listen.LocalAddress = "::"; listen.LocalPort = 8080; listen.RemoteAddress = null; listen.RemotePort = 0;
+        endpoint.Update(listen, Epoch.AddSeconds(3));
+        Check(endpoint.PrimaryAddress == "[::]" && endpoint.PrimaryPort == ":8080" && endpoint.PrimaryRole == "本地 · 监听" && endpoint.CopyText == "[::]:8080" && !endpoint.CanCopyRemote, "listeners foreground their local wildcard endpoint without suggesting a remote peer");
+        var pending = Row("history", 42, null); pending.State = "SYN_SENT";
+        endpoint = new EndpointView(pending, Epoch); endpoint.IsCurrent = false;
+        Check(endpoint.Status == "曾：正在连接" && endpoint.StatusHint.Contains("不代表当前连接") && endpoint.DetailsText.Contains("最后观察状态：正在连接"), "historical table state agrees with complete copy while clearly marking the past observation");
+        events.Clear(); endpoint.PropertyChanged += (sender, args) => events.Add(args.PropertyName); endpoint.Update(pending, Epoch.AddSeconds(4));
+        Check(endpoint.Status == "正在连接" && endpoint.StatusHint.StartsWith("当前快照") && events.Contains("StatusHint"), "returning to a current snapshot updates historical status and explanation together");
+        var unknown = Row("unknown-address", 42, null); unknown.RemoteAddress = null;
+        endpoint.Update(unknown, Epoch);
+        Check(endpoint.PrimaryAddress == "未知" && endpoint.PrimaryPort == "" && endpoint.CopyText == "未知", "missing remote address does not invent a display port");
     }
     private static EndpointRecord Unverified(string epoch)
     {

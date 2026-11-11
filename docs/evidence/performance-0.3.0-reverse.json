@@ -1,0 +1,401 @@
+{
+  "SchemaVersion": 1,
+  "GeneratedAtUtc": "2026-11-11T10:22:10.2191515Z",
+  "Environment": {
+    "OS": "Microsoft Windows 11 企業版",
+    "OSVersion": "10.0.22631",
+    "CPU": "AMD Ryzen 7 9700X 8-Core Processor",
+    "LogicalProcessors": 16,
+    "PowerShell": "7.6.9"
+  },
+  "HarnessSha256": "6AE74E63C454167741E2E27DDCC34E5DDCB910BABA5AC5A3F1E3FBDD4393B5E2",
+  "DetailScene": "Overview shows all naturally present apps. Expanded filters by the owned fixture process ID, then expands only that real process with 513 current loopback endpoints; other processes stay collapsed. Background minimizes that same filtered detail scene. Expansion records disclose actual target visible grids and realized rows for each attempt.",
+  "WindowStateValidation": "Each sampled own HWND records native IsWindowVisible and IsIconic. Every retained overview/expanded sample must be visible and not minimized; every retained background sample must be minimized. Each run restores only its own window before sampling. A run with a mismatching sample is excluded, preserved in local raw reports, and retried at most once. States between samples and physical occlusion are not observed. Foreground focus remains a separate measured property.",
+  "Method": "Same-machine, same sampler and host binary, equal requested durations and repetitions; actual sampled durations normalize CPU. With HarnessSha256 present, unchanged actual product entry points run inside that common WPF test host; measured resources include its sampling overhead, so these are not standalone EXE footprints. Overview and expanded are visible own-window Topmost scenes; OS foreground focus is not guaranteed and actual foreground sample counts are disclosed. Background is minimized. Machine CPU is divided by logical CPU count; one-core percentage is also reported. Real controlled loopback endpoints plus natural system load; count ranges disclose load drift. Working set and private bytes cover all observed descendants. Expansion latency is real binding assignment through layout and dispatcher ContextIdle, not mouse-to-screen latency. This summary intentionally excludes local paths, process IDs, addresses and application names.",
+  "Scenarios": [
+    {
+      "Scenario": "overview",
+      "Baseline": {
+        "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 30.7007099,
+        "CpuPercentOfMachine": 0.11451282434351787,
+        "CpuPercentOfOneCore": 1.8322051894962859,
+        "AverageWorkingSetBytes": 128010053.81818181,
+        "PeakWorkingSetBytes": 131489792.0,
+        "AveragePrivateBytes": 115873729.93939394,
+        "PeakPrivateBytes": 119873536.0,
+        "ForegroundSamples": 33.0,
+        "TotalSamples": 33,
+        "VisibleSamples": 33.0,
+        "MinimizedSamples": 0.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 1116.0,
+        "EndpointCountMax": 1322.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 603.0,
+        "NaturalEndpointCountMax": 809.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "Candidate": {
+        "ExecutableSha256": "757267682FE1C38A055E2BE03F2CB52EB0137028326BF363440D1194C7AC3A84",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 31.2807446,
+        "CpuPercentOfMachine": 1.9636930653498574,
+        "CpuPercentOfOneCore": 31.41908904559772,
+        "AverageWorkingSetBytes": 126054524.12121212,
+        "PeakWorkingSetBytes": 129269760.0,
+        "AveragePrivateBytes": 114291805.0909091,
+        "PeakPrivateBytes": 117489664.0,
+        "ForegroundSamples": 33.0,
+        "TotalSamples": 33,
+        "VisibleSamples": 33.0,
+        "MinimizedSamples": 0.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 1226.0,
+        "EndpointCountMax": 1456.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 713.0,
+        "NaturalEndpointCountMax": 943.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "ExpansionBefore": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 12.7035,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 5.332,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 5.2067000000000005,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "ExpansionAfter": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 16.595100000000002,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 10.6861,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 10.904200000000001,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "Delta": {
+        "CpuMachinePercentagePoints": 1.8491802410063396,
+        "AverageWorkingSetBytes": -1955529.696969688,
+        "AveragePrivateBytes": -1581924.848484844
+      }
+    },
+    {
+      "Scenario": "expanded",
+      "Baseline": {
+        "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 30.6808769,
+        "CpuPercentOfMachine": 0.09548904060170457,
+        "CpuPercentOfOneCore": 1.5278246496272732,
+        "AverageWorkingSetBytes": 133980160.0,
+        "PeakWorkingSetBytes": 137019392.0,
+        "AveragePrivateBytes": 121551530.66666667,
+        "PeakPrivateBytes": 124555264.0,
+        "ForegroundSamples": 33.0,
+        "TotalSamples": 33,
+        "VisibleSamples": 33.0,
+        "MinimizedSamples": 0.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 1043.0,
+        "EndpointCountMax": 1105.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 530.0,
+        "NaturalEndpointCountMax": 592.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "Candidate": {
+        "ExecutableSha256": "757267682FE1C38A055E2BE03F2CB52EB0137028326BF363440D1194C7AC3A84",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 31.0306968,
+        "CpuPercentOfMachine": 0.5696224407696833,
+        "CpuPercentOfOneCore": 9.113959052314932,
+        "AverageWorkingSetBytes": 135766140.12121212,
+        "PeakWorkingSetBytes": 141041664.0,
+        "AveragePrivateBytes": 123099570.42424242,
+        "PeakPrivateBytes": 128368640.0,
+        "ForegroundSamples": 33.0,
+        "TotalSamples": 33,
+        "VisibleSamples": 33.0,
+        "MinimizedSamples": 0.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 1465.0,
+        "EndpointCountMax": 1500.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 952.0,
+        "NaturalEndpointCountMax": 987.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "ExpansionBefore": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 12.7035,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 5.332,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 5.2067000000000005,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "ExpansionAfter": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 16.595100000000002,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 10.6861,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 10.904200000000001,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "Delta": {
+        "CpuMachinePercentagePoints": 0.47413340016797867,
+        "AverageWorkingSetBytes": 1785980.1212121248,
+        "AveragePrivateBytes": 1548039.7575757504
+      }
+    },
+    {
+      "Scenario": "background",
+      "Baseline": {
+        "ExecutableSha256": "FA298A05B78EBF5653E0C8D9E25F803488FA8BBC47AA3D227A0A997B3CAA64D5",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 30.7049042,
+        "CpuPercentOfMachine": 0.025443818189799138,
+        "CpuPercentOfOneCore": 0.4071010910367862,
+        "AverageWorkingSetBytes": 137652410.1818182,
+        "PeakWorkingSetBytes": 142839808.0,
+        "AveragePrivateBytes": 125000114.42424242,
+        "PeakPrivateBytes": 130236416.0,
+        "ForegroundSamples": 0.0,
+        "TotalSamples": 33,
+        "VisibleSamples": 33.0,
+        "MinimizedSamples": 33.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 913.0,
+        "EndpointCountMax": 1048.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 400.0,
+        "NaturalEndpointCountMax": 535.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "Candidate": {
+        "ExecutableSha256": "757267682FE1C38A055E2BE03F2CB52EB0137028326BF363440D1194C7AC3A84",
+        "Runs": 3,
+        "RequestedSampleSeconds": 10,
+        "MeasuredSeconds": 32.0339788,
+        "CpuPercentOfMachine": 0.1524260389408761,
+        "CpuPercentOfOneCore": 2.438816623054018,
+        "AverageWorkingSetBytes": 141321088.0,
+        "PeakWorkingSetBytes": 148127744.0,
+        "AveragePrivateBytes": 128137088.0,
+        "PeakPrivateBytes": 134995968.0,
+        "ForegroundSamples": 0.0,
+        "TotalSamples": 32,
+        "VisibleSamples": 32.0,
+        "MinimizedSamples": 32.0,
+        "WindowStateValidated": true,
+        "ExcludedInvalidAttempts": 0,
+        "EndpointCountMin": 1480.0,
+        "EndpointCountMax": 1544.0,
+        "FixtureEndpointCountMin": 513.0,
+        "FixtureEndpointCountMax": 513.0,
+        "NaturalEndpointCountMin": 967.0,
+        "NaturalEndpointCountMax": 1031.0,
+        "MaximumObservedDescendants": 0.0
+      },
+      "ExpansionBefore": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 12.7035,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 5.332,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 5.2067000000000005,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "ExpansionAfter": [
+        {
+          "Attempt": 1,
+          "Milliseconds": 16.595100000000002,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 2,
+          "Milliseconds": 10.6861,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        },
+        {
+          "Attempt": 3,
+          "Milliseconds": 10.904200000000001,
+          "ExpandedApplications": 1,
+          "RealizedDataGrids": 1,
+          "RealizedRows": 8,
+          "TargetVisibleDataGrids": 1,
+          "TargetRealizedRows": 8,
+          "TargetCurrentEndpointCount": 513,
+          "Kind": "warm re-expansion after explicit shared warmup"
+        }
+      ],
+      "Delta": {
+        "CpuMachinePercentagePoints": 0.12698222075107699,
+        "AverageWorkingSetBytes": 3668677.8181818128,
+        "AveragePrivateBytes": 3136973.575757578
+      }
+    }
+  ]
+}

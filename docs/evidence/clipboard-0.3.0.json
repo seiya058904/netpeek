@@ -1,0 +1,118 @@
+{
+  "SchemaVersion": 1,
+  "Version": "0.3.0",
+  "ExecutableSha256": "22749E222DCC5483CC3EDAE06A781239BCDACBABEB92666879992D27724D99EB",
+  "HarnessSha256": "6AE74E63C454167741E2E27DDCC34E5DDCB910BABA5AC5A3F1E3FBDD4393B5E2",
+  "Success": true,
+  "ProductExitCode": 0,
+  "Method": "Unchanged real EXE Program.Main runs inside a common test-owned WPF process. Measurements include identical test-host and in-process sampler overhead; they are not standalone EXE footprints. Real endpoint table snapshots bracket samples. WPF bindings/control events manipulate only this host's actual UI. Expansion response is property assignment through UpdateLayout and dispatcher ContextIdle; it is not mouse-to-display latency.",
+  "ActualWindowDpi": 96,
+  "Checks": [
+    {
+      "Passed": true,
+      "Name": "Live owned fixture isolated"
+    },
+    {
+      "Passed": true,
+      "Name": "IPv4 quick copy reaches clipboard"
+    },
+    {
+      "Passed": true,
+      "Name": "Menu local copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Menu remote copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Sampling continues with copy menu open"
+    },
+    {
+      "Passed": true,
+      "Name": "Full copy freezes menu-open observation"
+    },
+    {
+      "Passed": true,
+      "Name": "Full record carries provenance"
+    },
+    {
+      "Passed": true,
+      "Name": "IPv6 quick copy reaches clipboard"
+    },
+    {
+      "Passed": true,
+      "Name": "Menu local copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Menu remote copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Sampling continues with copy menu open"
+    },
+    {
+      "Passed": true,
+      "Name": "Full copy freezes menu-open observation"
+    },
+    {
+      "Passed": true,
+      "Name": "Full record carries provenance"
+    },
+    {
+      "Passed": true,
+      "Name": "Unavailable remote action disabled"
+    },
+    {
+      "Passed": true,
+      "Name": "Listener/UDP local copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Unavailable remote action disabled"
+    },
+    {
+      "Passed": true,
+      "Name": "Listener/UDP local copy"
+    },
+    {
+      "Passed": true,
+      "Name": "Closed UDP becomes history"
+    },
+    {
+      "Passed": true,
+      "Name": "History filter isolates closed binding"
+    },
+    {
+      "Passed": true,
+      "Name": "Historical full record reaches clipboard"
+    },
+    {
+      "Passed": true,
+      "Name": "Historical copy remains explicit"
+    },
+    {
+      "Passed": true,
+      "Name": "Right-click copy reaches clipboard"
+    },
+    {
+      "Passed": true,
+      "Name": "Help is nonmodal"
+    },
+    {
+      "Passed": true,
+      "Name": "Escape closes only help"
+    },
+    {
+      "Passed": true,
+      "Name": "Warning details contain the full message"
+    },
+    {
+      "Passed": true,
+      "Name": "Original clipboard restored"
+    }
+  ],
+  "PassedChecks": 26,
+  "UnverifiedObservations": 0
+}

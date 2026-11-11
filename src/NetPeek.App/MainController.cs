@@ -44,6 +44,7 @@ namespace NetPeek
         private bool disposed, paused, hasSnapshot;
         private long version;
         private string search = "";
+        private string searchError;
         private int filter, timeFilter, matchedEndpoints;
         private bool changingFilters;
         private int queryGeneration;
@@ -126,6 +127,7 @@ namespace NetPeek
         private void RefreshFilter(bool locate)
         {
             var query = new EndpointFilter(search, filter, timeFilter);
+            searchError = query.Error;
             var desired = new List<ApplicationView>(); matchedEndpoints = 0;
             foreach (var app in store.Applications) {
                 int count = query.Apply(app);
@@ -183,6 +185,8 @@ namespace NetPeek
                 title = "暂时无法读取完整连接"; description = "请稍后重试。受保护进程的路径可能不可读。"; glyph = FailureGlyph;
             } else if (!hasSnapshot) {
                 title = "正在读取本机连接…"; description = "正在获取 Windows 提供的应用与端点信息。"; glyph = EmptyGlyph;
+            } else if (searchError != null) {
+                title = "查询格式不正确"; description = searchError; glyph = SearchGlyph;
             } else if (filtered) {
                 title = "没有找到匹配的端点"; description = "换个关键词或时间范围，也可以清空筛选。"; glyph = SearchGlyph;
             } else {
@@ -222,19 +226,24 @@ namespace NetPeek
         }
         private void UpdateStatus()
         {
+            UpdateStatusAt(DateTime.UtcNow);
+        }
+        private void UpdateStatusAt(DateTime now)
+        {
             if (disposed) return;
-            bool stale = hasSnapshot && (DateTime.UtcNow - lastSuccess).TotalSeconds > 6;
+            bool stale = hasSnapshot && (now - lastSuccess).TotalSeconds > 6;
             string status = paused ? "界面已暂停" : !String.IsNullOrEmpty(currentWarning) || stale ? "采集需留意" : hasSnapshot ? "正在采集" : "正在读取连接";
             SetText("StatusText", status);
             Element<System.Windows.Shapes.Ellipse>("StatusDot").Fill = paused || stale || !String.IsNullOrEmpty(currentWarning) ? AttentionBrush : HealthyBrush;
             string warning = currentWarning;
             if (paused) warning = "画面暂停于 " + (hasSnapshot ? lastSuccess.ToLocalTime().ToString("HH:mm:ss") : "首次采样前") + "。后台继续尝试采集；继续后显示最新状态。";
-            else if (stale && String.IsNullOrEmpty(warning)) warning = "当前画面已超过 6 秒未更新，暂不能代表实时连接。正在重新读取…";
+            else if (stale) warning = "当前画面已超过 6 秒未更新，暂不能代表实时连接。" +
+                (String.IsNullOrEmpty(warning) ? "正在重新读取…" : " " + warning);
             Element<Border>("WarningPanel").Visibility = String.IsNullOrEmpty(warning) ? Visibility.Collapsed : Visibility.Visible;
             SetText("WarningText", warning ?? "");
             Element<Button>("RetryButton").Visibility = paused ? Visibility.Collapsed : Visibility.Visible;
             SetText("LastUpdated", hasSnapshot ? (paused ? "画面时间 " : "更新于 ") + lastSuccess.ToLocalTime().ToString("HH:mm:ss") : "等待首次采样");
-            SetText("Footnote", notice != null && DateTime.UtcNow < noticeUntil ? notice : "IPv4 + IPv6 · TCP + UDP · " + (elevated ? "当前以管理员权限运行" : "普通用户权限"));
+            SetText("Footnote", notice != null && now < noticeUntil ? notice : "IPv4 + IPv6 · TCP + UDP · " + (elevated ? "当前以管理员权限运行" : "普通用户权限"));
         }
         private async void LoadIcons()
         {
@@ -284,7 +293,7 @@ namespace NetPeek
             if ((string)button.Tag == "CopyMenu") { var endpoint = button.DataContext as EndpointView; if (endpoint != null) ShowCopyMenu(button, endpoint); }
             if ((string)button.Tag == "ShowAppEndpoints") {
                 var app = button.DataContext as ApplicationView;
-                if (app != null) SetFilters(app.Path ?? app.Processes[0].Identity.ProcessId.ToString());
+                if (app != null) SetFilters(app.Path ?? "pid:" + app.Processes[0].Identity.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
         }
         private static EndpointView FindEndpoint(DependencyObject item, out FrameworkElement target)

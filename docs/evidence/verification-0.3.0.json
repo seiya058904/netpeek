@@ -1,0 +1,90 @@
+{
+  "Version": "0.3.0",
+  "ExecutableSha256": "22749E222DCC5483CC3EDAE06A781239BCDACBABEB92666879992D27724D99EB",
+  "ExecutableBytes": 146432,
+  "FinalExecutableChecks": [
+    {
+      "Name": "Core",
+      "Checks": 20
+    },
+    {
+      "Name": "View models",
+      "Checks": 83
+    },
+    {
+      "Name": "Icon cache",
+      "Checks": 13
+    },
+    {
+      "Name": "Controller",
+      "Checks": 34
+    },
+    {
+      "Name": "WPF layout",
+      "Checks": 109
+    }
+  ],
+  "SourceChecks": {
+    "Core": 28,
+    "ViewModels": 83
+  },
+  "Integration": {
+    "Elevated": false,
+    "Passed": true,
+    "PowerShell": "7.6.9",
+    "ExternalProbe": false,
+    "GuiSmoke": true,
+    "Checks": 65,
+    "LiveSockets": true
+  },
+  "WindowsPowerShellCompatibility": {
+    "Checks": 9,
+    "Passed": true,
+    "Version": "5.1",
+    "Mode": "Passive system table comparison; no GUI smoke or additional sockets"
+  },
+  "Gui": {
+    "Explanation": "One search-focus observation is unverified; two duplicate clipboard-restore skip observations preserve a newer external clipboard.",
+    "Checks": 33,
+    "Passed": true,
+    "UnverifiedObservations": 3
+  },
+  "Clipboard": {
+    "Checks": 26,
+    "Passed": true,
+    "OriginalClipboardRestored": true
+  },
+  "PerformanceGates": [
+    {
+      "Scenario": "overview",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 11587373,
+      "CpuDelta": -0.07950057587648132,
+      "PrivateBytesDelta": -2967986.424242422
+    },
+    {
+      "Scenario": "expanded",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 12155153,
+      "CpuDelta": 0.003209214314282144,
+      "PrivateBytesDelta": -2592147.3939394057
+    },
+    {
+      "Scenario": "background",
+      "Passed": true,
+      "CpuMachinePercentagePointAllowance": 0.2,
+      "PrivateBytesAllowance": 12500011,
+      "CpuDelta": -0.003125955739510175,
+      "PrivateBytesDelta": 735294.0606060624
+    }
+  ],
+  "RawEvidence": "Git-ignored artifacts/v0.3.0 and tests/bin. Public summaries omit local paths, process IDs, endpoint tables, actual screenshots and clipboard contents.",
+  "Limits": [
+    "96 DPI actual window; compact layouts and DPI conversions have separate simulated coverage.",
+    "Windows 10, real high-DPI/multi-monitor transitions, sleep/resume, adapter changes, full external keyboard and screen-reader acceptance remain unverified.",
+    "Resource measurements include the common test host and sampler. Natural system load drift is disclosed; passing budgets does not prove a performance improvement.",
+    "No GitHub Actions workflows are configured. Local verification is not CI evidence."
+  ]
+}

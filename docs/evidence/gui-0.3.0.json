@@ -1,0 +1,158 @@
+{
+  "SchemaVersion": 1,
+  "Version": "0.3.0",
+  "ExecutableSha256": "22749E222DCC5483CC3EDAE06A781239BCDACBABEB92666879992D27724D99EB",
+  "HarnessSha256": "6AE74E63C454167741E2E27DDCC34E5DDCB910BABA5AC5A3F1E3FBDD4393B5E2",
+  "Success": true,
+  "ProductExitCode": 0,
+  "Method": "Unchanged real EXE Program.Main runs inside a common test-owned WPF process. Measurements include identical test-host and in-process sampler overhead; they are not standalone EXE footprints. Real endpoint table snapshots bracket samples. WPF bindings/control events manipulate only this host's actual UI. Expansion response is property assignment through UpdateLayout and dispatcher ContextIdle; it is not mouse-to-display latency.",
+  "ActualWindowDpi": 96,
+  "Checks": [
+    {
+      "Passed": true,
+      "Name": "Warning and help visible"
+    },
+    {
+      "Passed": true,
+      "Name": "Minimum-window connection viewport"
+    },
+    {
+      "Passed": true,
+      "Name": "Copy column horizontally reachable"
+    },
+    {
+      "Passed": true,
+      "Name": "Minimum-window measured layout"
+    },
+    {
+      "Passed": true,
+      "Name": "Real endpoint detail scrolled"
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 1"
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 1"
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 1"
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 2"
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 2"
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 2"
+    },
+    {
+      "Passed": true,
+      "Name": "Selection retained across real snapshot 3"
+    },
+    {
+      "Passed": true,
+      "Name": "Scroll retained across real snapshot 3"
+    },
+    {
+      "Passed": true,
+      "Name": "Observed keyboard focus retained across real snapshot 3"
+    },
+    {
+      "Passed": true,
+      "Name": "Keyboard focus retention observation"
+    },
+    {
+      "Passed": true,
+      "Name": "Search empty state"
+    },
+    {
+      "Passed": true,
+      "Name": "Escape restores list"
+    },
+    {
+      "Passed": null,
+      "Name": "Search keyboard focus observation"
+    },
+    {
+      "Passed": true,
+      "Name": "Reset filters restores all"
+    },
+    {
+      "Passed": true,
+      "Name": "Real endpoint rows materialized"
+    },
+    {
+      "Passed": true,
+      "Name": "Copy endpoint clipboard equality"
+    },
+    {
+      "Passed": true,
+      "Name": "Pause preserves timestamp"
+    },
+    {
+      "Passed": true,
+      "Name": "Resume updates timestamp"
+    },
+    {
+      "Passed": true,
+      "Name": "Tray hide"
+    },
+    {
+      "Passed": true,
+      "Name": "Single-instance activation exit"
+    },
+    {
+      "Passed": true,
+      "Name": "Single-instance restores same window"
+    },
+    {
+      "Passed": true,
+      "Name": "Unique real-icon fixture appears"
+    },
+    {
+      "Passed": true,
+      "Name": "Icon fixture exits"
+    },
+    {
+      "Passed": true,
+      "Name": "WindowRestoredForRetentionCheck"
+    },
+    {
+      "Passed": true,
+      "Name": "App disappears after history retention"
+    },
+    {
+      "Passed": true,
+      "Name": "Fixture restarts with new PID"
+    },
+    {
+      "Passed": true,
+      "Name": "Reappeared app gets icon on new view"
+    },
+    {
+      "Passed": true,
+      "Name": "Eight-process actual endpoint group"
+    },
+    {
+      "Passed": true,
+      "Name": "Multi-process details render"
+    },
+    {
+      "Passed": null,
+      "Name": "Clipboard restore skipped"
+    },
+    {
+      "Passed": null,
+      "Name": "Clipboard restore skipped"
+    }
+  ],
+  "PassedChecks": 33,
+  "UnverifiedObservations": 3
+}

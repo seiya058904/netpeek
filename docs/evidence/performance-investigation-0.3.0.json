@@ -1,0 +1,124 @@
+{
+  "Purpose": "Retain failed prerelease measurements and bounded diagnostic observations. These binaries are not release artifacts.",
+  "Rounds": [
+    {
+      "Order": "baseline then candidate",
+      "CandidateSha256": "757267682FE1C38A055E2BE03F2CB52EB0137028326BF363440D1194C7AC3A84",
+      "Scenarios": [
+        {
+          "Scenario": "overview",
+          "BaselineCpuMachinePercent": 0.09216089478441933,
+          "CandidateCpuMachinePercent": 0.9164767306860453,
+          "CpuDelta": 0.8243158359016259,
+          "PrivateBytesDelta": 428838.78787879646,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": false
+        },
+        {
+          "Scenario": "expanded",
+          "BaselineCpuMachinePercent": 0.7178556212166767,
+          "CandidateCpuMachinePercent": 1.3526361998301732,
+          "CpuDelta": 0.6347805786134966,
+          "PrivateBytesDelta": 1546798.5454545468,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": false
+        },
+        {
+          "Scenario": "background",
+          "BaselineCpuMachinePercent": 0.01905829434875707,
+          "CandidateCpuMachinePercent": 0.02541512793451647,
+          "CpuDelta": 0.006356833585759402,
+          "PrivateBytesDelta": 1094376.727272734,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": true
+        }
+      ]
+    },
+    {
+      "Order": "candidate then baseline",
+      "CandidateSha256": "757267682FE1C38A055E2BE03F2CB52EB0137028326BF363440D1194C7AC3A84",
+      "Scenarios": [
+        {
+          "Scenario": "overview",
+          "BaselineCpuMachinePercent": 0.11451282434351787,
+          "CandidateCpuMachinePercent": 1.9636930653498574,
+          "CpuDelta": 1.8491802410063396,
+          "PrivateBytesDelta": -1581924.848484844,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": false
+        },
+        {
+          "Scenario": "expanded",
+          "BaselineCpuMachinePercent": 0.09548904060170457,
+          "CandidateCpuMachinePercent": 0.5696224407696833,
+          "CpuDelta": 0.47413340016797867,
+          "PrivateBytesDelta": 1548039.7575757504,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": false
+        },
+        {
+          "Scenario": "background",
+          "BaselineCpuMachinePercent": 0.025443818189799138,
+          "CandidateCpuMachinePercent": 0.1524260389408761,
+          "CpuDelta": 0.12698222075107699,
+          "PrivateBytesDelta": 3136973.575757578,
+          "RunsPerVersion": 3,
+          "SecondsPerRun": 10,
+          "CpuGatePassed": true
+        }
+      ]
+    }
+  ],
+  "Diagnostics": [
+    {
+      "Variant": "diagnostic-old-xaml",
+      "ExecutableSha256": "07EEF8EF54EDFAD9797A73EA6A8A1DD035CC728F32AC3DE5D4FC1C1C56641A68",
+      "Success": true,
+      "Runs": [
+        {
+          "Scenario": "overview",
+          "CpuMachinePercent": 0.019079142250411657,
+          "MeasuredSeconds": 5.1184822
+        },
+        {
+          "Scenario": "expanded",
+          "CpuMachinePercent": 0,
+          "MeasuredSeconds": 5.1155269
+        },
+        {
+          "Scenario": "background",
+          "CpuMachinePercent": 0,
+          "MeasuredSeconds": 5.114454
+        }
+      ]
+    },
+    {
+      "Variant": "diagnostic-placeholder",
+      "ExecutableSha256": "5151139BF4F50715A9E43BACF6D61A8D9B4E8DB8F7615EA869586D8C976748FF",
+      "Success": true,
+      "Runs": [
+        {
+          "Scenario": "overview",
+          "CpuMachinePercent": 0.20984720413076485,
+          "MeasuredSeconds": 5.119052
+        },
+        {
+          "Scenario": "expanded",
+          "CpuMachinePercent": 0.01903612941135283,
+          "MeasuredSeconds": 5.1300476
+        },
+        {
+          "Scenario": "background",
+          "CpuMachinePercent": 0,
+          "MeasuredSeconds": 5.1325115
+        }
+      ]
+    }
+  ],
+  "Interpretation": "Same new C# code with the old XAML, then with only the original short search placeholder, did not reproduce the high CPU in short diagnostic runs. The released candidate must independently pass full repeated validation. The lower-level WPF/rendering mechanism was not profiled or proven."
+}
