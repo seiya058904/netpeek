@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and offline tests (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build NetPeek
+        run: .\build.ps1
+      - name: Core tests
+        run: .\tests\run-core-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
+      - name: ViewModel tests
+        run: .\tests\run-viewmodel-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
+      - name: Icon cache tests
+        run: .\tests\run-icon-cache-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
+      - name: Layout tests
+        run: .\tests\run-layout-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
+      - name: Controller state tests
+        run: .\tests\run-controller-state-tests.ps1 -Executable .\dist\NetPeek\NetPeek.exe
+      - name: Check whitespace and patch hygiene
+        run: git diff --check
